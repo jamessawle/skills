@@ -1,7 +1,7 @@
 {
   "name": "skill-tools",
   "version": "1.0.0",
-  "description": "Development tools for validating and maintaining skill definitions — single-skill validator, whole-marketplace validator, and role-definition validator.",
+  "description": "Development tools for validating and maintaining skill definitions.",
   "author": {
     "name": "James Sawle"
   },

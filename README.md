@@ -11,8 +11,6 @@ Reusable skills for AI coding agents, packaged as native plugins for both Claude
 | [`merge-queue`](plugins/pr-management/skills/merge-queue/SKILL.md) | Process approved PRs through a merge queue — fixes and merges each one sequentially, re-querying after each merge. | pr-management | [GitHub CLI](https://cli.github.com/) (`gh`) |
 | [`review-pr`](plugins/pr-management/skills/review-pr/SKILL.md) | Review a PR with parallel specialist reviewers (correctness, security, performance, testing, architecture) and produce a structured report. | pr-management | [GitHub CLI](https://cli.github.com/) (`gh`) |
 | [`skill-validator`](plugins/skill-tools/skills/skill-validator/SKILL.md) | Validate a single skill — checks markdown formatting, frontmatter fields, and content consistency. | skill-tools | Node.js |
-| [`marketplace-validator`](plugins/skill-tools/skills/marketplace-validator/SKILL.md) | Validate a skills marketplace — checks repo structure, JSON schemas, plugin paths, then validates each skill. | skill-tools | Node.js |
-| [`role-validator`](plugins/skill-tools/skills/role-validator/SKILL.md) | Validate role definition files — checks structure, required sections, severity levels, and naming conventions. | skill-tools | Node.js |
 
 ## Installation
 

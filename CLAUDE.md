@@ -27,8 +27,6 @@ plugins/
     .codex-plugin/plugin.json
     skills/
       skill-validator/SKILL.md      # Validate a single skill
-      marketplace-validator/SKILL.md # Validate the whole marketplace
-      role-validator/SKILL.md       # Validate role definition files
 ```
 
 Each plugin directory contains:
@@ -46,7 +44,7 @@ Each skill directory contains:
 
 A plugin's `agents/` directory contains specialist subagents — personas that capture how each specialist thinks, what they prioritise, and what expertise they bring. They follow the standard Claude Code / Codex subagent format (YAML frontmatter + body) so that any skill in the plugin can spawn one by name (e.g. `subagent_type: "engineer"`), and users can also invoke them directly via `/agent`. Today only `pr-management` ships subagents (consumed by `review-pr`); other plugins can add their own `agents/` directory if they need specialist personas.
 
-Each role file must follow this structure (enforced by `/skill-tools:role-validator`):
+Each role file must follow this structure:
 
 1. **YAML frontmatter** — `name` (matching filename, lowercase + hyphens), `description` (when to use this subagent — used by Claude/Codex for trigger selection), and `tools` (comma-delimited tool list — usually `Read, Grep, Glob, Bash` for read-only review specialists)
 2. **H1 title** — the role name (e.g. `# Software Engineer`), first line of the body
@@ -62,7 +60,7 @@ The body is the subagent's system prompt — it provides the perspective. The ca
 1. Decide which plugin owns the role and create the file under its `agents/` directory (e.g. `plugins/pr-management/agents/devops-engineer.md`)
 2. Add YAML frontmatter (`name`, `description`, `tools`) and the six-section body structure
 3. Skills in that plugin can spawn it by name via the Agent tool — no registration step is needed
-4. Run `/skill-tools:role-validator` to validate
+4. Run `claude plugin validate plugins/<plugin-name>` to validate the subagent frontmatter
 
 ## Skill standard
 
@@ -85,8 +83,9 @@ These fields are not part of the Agent Skills spec but are used by Claude Code:
 
 1. Create a directory under the appropriate plugin: `plugins/<plugin-name>/skills/<skill-name>/`
 2. Write `SKILL.md` with frontmatter and workflow
-3. Run `/skill-tools:marketplace-validator` to validate everything (skills are discovered by scanning the plugin's `skills/` directory — no marketplace edit needed)
-4. Update `README.md` with the new skill
+3. Validate the skill with `/skill-tools:skill-validator <path>` (markdown lint + content consistency)
+4. Validate the surrounding plugin with `claude plugin validate plugins/<plugin-name>` (manifest + frontmatter)
+5. Update `README.md` with the new skill
 
 ## Adding a new plugin
 
@@ -97,15 +96,15 @@ These fields are not part of the Agent Skills spec but are used by Claude Code:
 5. Add an entry to **both** marketplace manifests:
    - `.claude-plugin/marketplace.json`: `{ "name", "source": "./plugins/<name>", "description", "category" }`
    - `.agents/plugins/marketplace.json`: `{ "name", "source": { "source": "local", "path": "./plugins/<name>" }, "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }, "category" }`
-6. Validate with `/skill-tools:marketplace-validator`
+6. Validate the Claude side with `claude plugin validate .` (covers marketplace + plugin manifests + subagent frontmatter); validate the Codex side by running `codex marketplace add github:jamessawle/skills` against your repo
 
 ## Validation
 
 Always validate before committing:
-- Single skill: `/skill-tools:skill-validator <path-to-skill-directory>`
-- Whole marketplace: `/skill-tools:marketplace-validator`
+- Each modified skill: `/skill-tools:skill-validator <path-to-skill-directory>` (markdown lint + content consistency that Anthropic's validator does not cover)
+- Whole repo (Claude side): `claude plugin validate .` for the marketplace, plus `claude plugin validate plugins/<name>` for each plugin
 
-These check markdown formatting, frontmatter fields, allowed-tools consistency, and permission coverage.
+The Codex marketplace and per-plugin `.codex-plugin/plugin.json` files are not currently validated by an automated tool — verify them by adding the marketplace to a real Codex install (`codex marketplace add github:jamessawle/skills`).
 
 ## Creating and improving skills
 
@@ -114,12 +113,12 @@ Use `/skill-creator:skill-creator` for the full skill development lifecycle:
 - **Measuring effectiveness** — runs eval prompts with and without the skill to compare output quality
 - **Description optimization** — tests whether the skill triggers for natural language queries and improves the description (requires `ANTHROPIC_API_KEY` for the full loop; without it, use the eval-only step via `run_eval.py`)
 
-Typical workflow: draft with `/skill-creator`, validate with `/skill-tools:marketplace-validator`, then commit.
+Typical workflow: draft with `/skill-creator`, validate the skill with `/skill-tools:skill-validator <path>` and the plugin with `claude plugin validate plugins/<plugin-name>`, then commit.
 
 ## PR checklist
 
 Before creating a pull request:
-1. Run `/skill-tools:marketplace-validator` — all checks must pass
+1. Run `/skill-tools:skill-validator <path>` on each modified skill and `claude plugin validate .` on the repo — all checks must pass
 2. Ensure `README.md` is updated if skills were added or removed
 3. Ensure both `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` list any new plugin
 4. Commit messages should describe what changed and why
