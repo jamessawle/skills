@@ -91,12 +91,12 @@ These fields are not part of the Agent Skills spec but are used by Claude Code:
 
 1. Create a directory: `plugins/<plugin-name>/`
 2. Add `.claude-plugin/plugin.json` with `name`, `version`, `description`, `license` (and optional `author`, `homepage`, `repository`, `keywords`)
-3. Add `.codex-plugin/plugin.json` with `name`, `version`, `description`, `license`, `skills: "./skills/"`
+3. Add `.codex-plugin/plugin.json` with `name`, `version`, `description`, `keywords`, `skills: "./skills/"`, and (optional) `interface.category` for grouping in the marketplace picker — note that `license` is not part of the Codex manifest spec
 4. Add at least one skill under `plugins/<plugin-name>/skills/<skill-name>/`
 5. Add an entry to **both** marketplace manifests:
    - `.claude-plugin/marketplace.json`: `{ "name", "source": "./plugins/<name>", "description", "category" }`
-   - `.agents/plugins/marketplace.json`: `{ "name", "source": { "source": "local", "path": "./plugins/<name>" }, "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }, "category" }`
-6. Validate the Claude side with `claude plugin validate .` (covers marketplace + plugin manifests + subagent frontmatter); validate the Codex side by running `codex marketplace add github:jamessawle/skills` against your repo
+   - `.agents/plugins/marketplace.json`: `{ "name", "source": { "source": "local", "path": "./plugins/<name>" }, "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" } }` — note that `category` is not a valid field at this level for Codex (put it under the per-plugin manifest's `interface.category` instead)
+6. Validate the Claude side with `claude plugin validate .` (covers marketplace + plugin manifests + subagent frontmatter); validate the Codex side with `codex plugin marketplace add .` from inside the repo (a clean add with no warnings means the manifests parse)
 
 ## Validation
 

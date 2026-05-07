@@ -2,6 +2,9 @@
   "name": "skill-tools",
   "version": "1.0.0",
   "description": "Development tools for validating and maintaining skill definitions.",
-  "license": "MIT",
-  "skills": "./skills/"
+  "keywords": ["skills", "validator", "tooling"],
+  "skills": "./skills/",
+  "interface": {
+    "category": "developer-tools"
+  }
 }

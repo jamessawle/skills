@@ -13,8 +13,7 @@
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
-      },
-      "category": "developer-tools"
+      }
     },
     {
       "name": "skill-tools",
@@ -25,8 +24,7 @@
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
-      },
-      "category": "developer-tools"
+      }
     }
   ]
 }

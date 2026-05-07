@@ -27,9 +27,9 @@ Then `/plugin install pr-management` (or `skill-tools`) from the marketplace pic
 ### Codex
 
 ```bash
-codex marketplace add github:jamessawle/skills
+codex plugin marketplace add jamessawle/skills
 ```
 
-Then run `codex` and pick plugins from the marketplace picker, or install directly with `codex plugin install pr-management`.
+Then start an interactive session with `codex` and install the plugins from the marketplace picker.
 
-Pin to a specific ref with `--ref`, e.g. `codex marketplace add github:jamessawle/skills --ref v1.0.0`.
+Pin to a specific ref with `--ref`, e.g. `codex plugin marketplace add jamessawle/skills --ref v1.0.0`.
