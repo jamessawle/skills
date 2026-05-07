@@ -1,13 +1,13 @@
 ---
 name: review-pr
-description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Dynamically discovers specialist roles from the agents/ directory and spawns them in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
+description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Discovers the specialist subagents shipped alongside this skill (engineer, security-engineer, performance-engineer, qa-engineer, architect) and spawns them in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
 license: MIT
-compatibility: Requires GitHub CLI (gh) authenticated with read access to the target repo. Requires agents/*.md role definitions at the plugin root (alongside .claude-plugin/ and .codex-plugin/).
+compatibility: Requires GitHub CLI (gh) authenticated with read access to the target repo. Requires the pr-management plugin's specialist subagents (in plugins/pr-management/agents/) to be installed and enabled.
 allowed-tools: Bash, Read, Grep, Glob, Agent
 argument-hint: "[owner/repo] [pr-number]"
 metadata:
   author: jamessawle
-  version: "2.0"
+  version: "3.0"
 ---
 
 # Review PR
@@ -93,46 +93,46 @@ gh pr diff <number> [--repo <owner/repo>] > "$REVIEW_DIR/.pr-diff.txt"
 
 Reuse the `baseRefName` value already fetched in Step 1 — do not make a redundant `gh pr view` call.
 
-### Step 3: Discover and select roles
+### Step 3: Select reviewers
 
-Resolve the plugin root by walking up from this SKILL.md file's own directory until you find a directory containing `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`. Glob `agents/*.md` from inside that plugin root — not from the cloned PR repo. If no role files are found, report an error ("No role definitions found at <plugin-root>/agents/*.md — ensure the agents directory is present inside the plugin") and stop.
+The plugin ships these specialist subagents (in `plugins/pr-management/agents/`):
 
-Read each role file to evaluate relevance. Based on each role's identity, perspective, and areas of expertise — combined with the PR context (languages, file types, scope, PR type) — decide which roles would add value to this review. The general principle: skip roles whose areas of expertise have no overlap with the file types and content in the changeset. Common patterns:
+| Subagent | Focus |
+|----------|-------|
+| `engineer` | Correctness, reliability, code quality |
+| `security-engineer` | Threats, vulnerabilities, defensive coding |
+| `performance-engineer` | Efficiency, scalability, behaviour under load |
+| `qa-engineer` | Test quality and verification |
+| `architect` | System design, boundaries, maintainability |
 
-- **Docs-only PRs** (`.md`, `.txt`, `.rst`) — skip Performance Engineer, QA Engineer
-- **Config-only PRs** (`.json`, `.yaml`, `.toml`) — skip Performance Engineer, QA Engineer
-- **Dependency updates** (lockfiles) — skip QA Engineer, Architect
-- **Small code PRs** (<100 lines) — skip Architect
-- **No executable code** — skip QA Engineer
+Pick the subset relevant to this PR. The general principle: skip specialists whose focus has no overlap with the file types and content in the changeset. Calibration examples:
 
-Software Engineer and Security Engineer are included for all PR types — correctness and security concerns apply regardless of file type.
+- **Docs-only PRs** (`.md`, `.txt`, `.rst`) — skip `performance-engineer`, `qa-engineer`
+- **Config-only PRs** (`.json`, `.yaml`, `.toml`) — skip `performance-engineer`, `qa-engineer`
+- **Dependency updates** (lockfiles) — skip `qa-engineer`, `architect`
+- **Small code PRs** (<100 lines) — skip `architect`
+- **No executable code** — skip `qa-engineer`
 
-These are calibration examples, not rigid rules. Apply the same principle to any new roles discovered — use judgment for mixed or unusual PRs.
+`engineer` and `security-engineer` are included for all PR types — correctness and security concerns apply regardless of file type.
 
-If no roles are selected (e.g. a trivial whitespace-only change), skip Steps 4 and 5 and produce a summary noting that the PR did not warrant specialist review.
+These are calibration examples, not rigid rules. Use judgment for mixed or unusual PRs.
 
-For any roles not selected, note in the final report: "Skipped [role] — [brief reason]."
+If no specialists are selected (e.g. a trivial whitespace-only change), skip Steps 4 and 5 and produce a summary noting that the PR did not warrant specialist review.
 
-The role file contents read here will be reused in Step 4 prompts — do not re-read the files.
+For any specialists not selected, note in the final report: "Skipped [name] — [brief reason]."
 
 ### Step 4: Spawn specialist reviewers
 
-Spawn the selected roles as subagents in parallel using the Agent tool. Use the role file contents already read in Step 3 — embed them directly in each subagent's prompt. Each subagent also receives:
+Spawn the selected subagents in parallel using the Agent tool, one Agent call per specialist, all in a single message. Pass each one the PR-specific context — the subagent already carries its own perspective and areas of expertise from its system prompt, so the prompt only needs the task and PR data.
 
-- The PR metadata (title, description, author, base branch)
-- The path to the cloned repo (`$REVIEW_DIR`)
-- The list of changed files
-- The PR scope, primary languages, and type
-- The path to the diff file (`$REVIEW_DIR/.pr-diff.txt`)
-
-For each subagent, the prompt should be structured as:
+For each Agent call, set:
+- `subagent_type` — the subagent name from the table above (e.g. `engineer`, `security-engineer`)
+- `description` — short label, e.g. `"Engineer review of PR #123"`
+- `prompt` — structured as below
 
 ```text
-## Your role
-[full contents of the role file]
-
 ## Your task
-Review this pull request from the perspective described above.
+Review this pull request from your specialist perspective.
 
 ## PR Context
 - Title: [title]

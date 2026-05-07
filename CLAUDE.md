@@ -42,25 +42,27 @@ Each skill directory contains:
 - `references/claude.md` — recommended permission patterns (optional)
 - `scripts/` — executable scripts for deterministic tasks (optional)
 
-## Role definitions
+## Role definitions (specialist subagents)
 
-A plugin's `agents/` directory contains reusable role definitions — personas that capture how each specialist thinks, what they prioritise, and what expertise they bring. Skills inside that plugin dynamically discover roles by globbing `<plugin-root>/agents/*.md` and selecting which roles are relevant to the task at hand. Today only `pr-management` ships role definitions (consumed by `review-pr`); other plugins can add their own `agents/` directory if they need specialist personas.
+A plugin's `agents/` directory contains specialist subagents — personas that capture how each specialist thinks, what they prioritise, and what expertise they bring. They follow the standard Claude Code / Codex subagent format (YAML frontmatter + body) so that any skill in the plugin can spawn one by name (e.g. `subagent_type: "engineer"`), and users can also invoke them directly via `/agent`. Today only `pr-management` ships subagents (consumed by `review-pr`); other plugins can add their own `agents/` directory if they need specialist personas.
 
 Each role file must follow this structure (enforced by `/skill-tools:role-validator`):
 
-1. **H1 title** — the role name (e.g. `# Software Engineer`), must be the first line
-2. **Identity statement** — 1-2 sentences immediately after the title describing who the role is
-3. **`## Perspective`** — how this role thinks about code, their mental model and trade-off preferences
-4. **`## Areas of expertise`** — technical domains with bold-labeled items (e.g. `**Topic** -- description`)
-5. **`## Severity calibration`** — four levels: **Critical**, **Important**, **Suggestion**, **Nitpick**
+1. **YAML frontmatter** — `name` (matching filename, lowercase + hyphens), `description` (when to use this subagent — used by Claude/Codex for trigger selection), and `tools` (comma-delimited tool list — usually `Read, Grep, Glob, Bash` for read-only review specialists)
+2. **H1 title** — the role name (e.g. `# Software Engineer`), first line of the body
+3. **Identity statement** — 1-2 sentences immediately after the title describing who the role is
+4. **`## Perspective`** — how this role thinks about code, their mental model and trade-off preferences
+5. **`## Areas of expertise`** — technical domains with bold-labeled items (e.g. `**Topic** -- description`)
+6. **`## Severity calibration`** — four levels: **Critical**, **Important**, **Suggestion**, **Nitpick**
 
-Role files do not contain task-specific instructions (output format, context framing). The calling skill provides the task; the role file provides the perspective. Filenames must use lowercase letters, numbers, and hyphens only (e.g. `security-engineer.md`).
+The body is the subagent's system prompt — it provides the perspective. The calling skill provides the per-invocation task (PR diff, what to focus on, output format). Filenames must use lowercase letters, numbers, and hyphens only (e.g. `security-engineer.md`).
 
 ## Adding a new role
 
 1. Decide which plugin owns the role and create the file under its `agents/` directory (e.g. `plugins/pr-management/agents/devops-engineer.md`)
-2. Follow the four-section structure: identity statement, Perspective, Areas of expertise, Severity calibration
-3. Skills in that plugin discover roles automatically via `<plugin-root>/agents/*.md` globbing — no registration step is needed
+2. Add YAML frontmatter (`name`, `description`, `tools`) and the six-section body structure
+3. Skills in that plugin can spawn it by name via the Agent tool — no registration step is needed
+4. Run `/skill-tools:role-validator` to validate
 
 ## Skill standard
 

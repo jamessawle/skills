@@ -12,6 +12,22 @@ function check(results, label, fn) {
   }
 }
 
+function parseFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!match) return { frontmatter: null, body: content };
+
+  const data = {};
+  for (const line of match[1].split("\n")) {
+    const colon = line.indexOf(":");
+    if (colon === -1) continue;
+    const key = line.slice(0, colon).trim();
+    const value = line.slice(colon + 1).trim();
+    data[key] = value;
+  }
+
+  return { frontmatter: data, body: content.slice(match[0].length) };
+}
+
 function getSections(content) {
   const sections = {};
   const parts = content.split(/^## /m);
@@ -44,14 +60,42 @@ function run(rolePath) {
 
   if (!existsSync(resolved)) return results;
 
-  const content = readFileSync(resolved, "utf-8");
+  const rawContent = readFileSync(resolved, "utf-8");
+  const { frontmatter, body } = parseFrontmatter(rawContent);
+  const content = body;
   const lines = content.split("\n");
+  const nameWithoutExt = filename.replace(/\.md$/, "");
 
-  // H1 must be at the top — use negative lookahead to exclude ## and deeper
-  check(results, "File has a title (H1 heading) at the top", () => {
+  check(results, "Has YAML frontmatter (subagent metadata)", () => {
+    if (!frontmatter) {
+      throw new Error("No YAML frontmatter found — subagent files must declare name and description");
+    }
+  });
+
+  if (frontmatter) {
+    check(results, 'Frontmatter has "name" matching the filename', () => {
+      if (!frontmatter.name) {
+        throw new Error('Frontmatter is missing required "name" field');
+      }
+      if (frontmatter.name !== nameWithoutExt) {
+        throw new Error(
+          `Frontmatter name "${frontmatter.name}" does not match filename "${nameWithoutExt}"`
+        );
+      }
+    });
+
+    check(results, 'Frontmatter has non-empty "description"', () => {
+      if (!frontmatter.description || frontmatter.description.length === 0) {
+        throw new Error('Frontmatter is missing or has empty "description" field');
+      }
+    });
+  }
+
+  // H1 must be at the top of the body — use negative lookahead to exclude ## and deeper
+  check(results, "Body has a title (H1 heading) at the top", () => {
     const firstNonEmpty = lines.find((l) => l.trim().length > 0);
     if (!firstNonEmpty || !/^# (?!#).+/.test(firstNonEmpty)) {
-      throw new Error("No H1 heading found at the top of the file");
+      throw new Error("No H1 heading found at the top of the body (after frontmatter)");
     }
   });
 
@@ -120,7 +164,6 @@ function run(rolePath) {
   });
 
   check(results, "Filename uses lowercase-hyphen convention", () => {
-    const nameWithoutExt = filename.replace(/\.md$/, "");
     if (!/^[a-z0-9-]+$/.test(nameWithoutExt)) {
       throw new Error(
         `Filename "${filename}" should use lowercase letters, numbers, and hyphens only`

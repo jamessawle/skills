@@ -1,18 +1,18 @@
 ---
 name: role-validator
-description: Validate role definition files in the agents/ directory for structural correctness. Checks that each role file has a title, identity statement, Perspective section, Areas of expertise section with bold-labeled items, and Severity calibration section with all four levels (Critical, Important, Suggestion, Nitpick). Also verifies filename conventions. Use this skill whenever someone asks to validate, lint, or check role definitions, verify agents are well-formed, audit the agents/ directory, or catch problems with role files before publishing. This is for role validation — for checking skills, use skill-validator instead.
+description: Validate specialist subagent role files in a plugin's agents/ directory for structural correctness. Checks both the subagent YAML frontmatter (name matching filename, non-empty description) and the role-definition body (H1 title, identity statement, Perspective section, Areas of expertise section with bold-labeled items, and Severity calibration section with all four levels — Critical, Important, Suggestion, Nitpick). Also verifies filename conventions. Use this skill whenever someone asks to validate, lint, or check role definitions, verify subagents are well-formed, audit a plugin's agents/ directory, or catch problems with role files before publishing. This is for role validation — for checking skills, use skill-validator instead.
 license: MIT
 compatibility: Requires Node.js
 allowed-tools: Bash
 argument-hint: "<path-to-role-file-or-agents-directory>"
 metadata:
   author: jamessawle
-  version: "1.0"
+  version: "2.0"
 ---
 
 # Role Validator
 
-Validates role definition files in the `agents/` directory for structural correctness.
+Validates specialist subagent role files in a plugin's `agents/` directory for both subagent-frontmatter correctness and role-definition body structure.
 
 ## Required permissions
 
@@ -45,7 +45,10 @@ If a directory is provided, validate all `.md` files within it. If a single file
 This checks each role file for:
 
 - File exists and is readable
-- Has a title (H1 heading)
+- Has YAML frontmatter (the subagent metadata block delimited by `---`)
+- Frontmatter `name` matches the filename (without `.md`)
+- Frontmatter has a non-empty `description`
+- Body has a title (H1 heading) at the top, after the frontmatter
 - Title is followed by an identity statement (not another heading)
 - Has `## Perspective` section
 - Has `## Areas of expertise` section with bold-labeled items
