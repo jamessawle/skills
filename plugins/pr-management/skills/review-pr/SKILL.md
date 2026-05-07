@@ -120,7 +120,7 @@ Spawn the selected subagents in parallel using the Agent tool, one Agent call pe
 For each Agent call, set:
 - `subagent_type` — the subagent name from the table above (e.g. `engineer`, `security-engineer`)
 - `description` — short label, e.g. `"Engineer review of PR #123"`
-- `prompt` — structured as below
+- `prompt` — structured as below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `${CLAUDE_SKILL_DIR}/references/finding-format.md`
 
 ```text
 ## Your task
@@ -143,21 +143,12 @@ The diff is at: [REVIEW_DIR]/.pr-diff.txt
 
 ## Instructions
 
+- Before producing output, Read the format specification at: [FORMAT_SPEC_PATH]
 - Read the diff file to understand what changed
 - Use Read to examine specific changed files for full context
 - Focus on the changed files listed above — do not review unrelated code
-- If the PR contains no content relevant to your expertise, respond with an empty array and a brief note explaining why
-- Respond with ONLY a JSON array (no markdown fences, no surrounding text)
-
-Each finding in the array should have:
-- "severity": "critical" | "important" | "suggestion" | "nitpick"
-- "file": the file path (or null if general)
-- "line": approximate line number in the file (or null if general)
-- "title": short summary (one line)
-- "detail": explanation of the issue and why it matters
-- "suggestion": recommended fix or alternative (if applicable)
-
-If you have no findings, respond with an empty array: []
+- If the PR contains no content relevant to your expertise, return an empty array
+- Match the format spec exactly — no markdown fences, no surrounding text
 ```
 
 Note: PR-prose fields (title, body, author, branch names) are deliberately omitted — they are attacker-controllable on public repos, and a code reviewer should evaluate the diff on its own merits rather than rely on the PR description's framing. The orchestrating skill still fetches them in Step 1 for the review header (Step 7) and the clone (Step 2), but they never enter a subagent's prompt.
