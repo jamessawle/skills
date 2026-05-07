@@ -31,7 +31,7 @@ plugins/
 
 Each plugin directory contains:
 - `.claude-plugin/plugin.json` — Claude Code plugin manifest (`name`, `version`, `description`, `license`, …)
-- `.codex-plugin/plugin.json` — Codex plugin manifest (`name`, `version`, `description`, `license`, `skills`)
+- `.codex-plugin/plugin.json` — Codex plugin manifest (`name`, `version`, `description`, `keywords`, `skills`, optional `interface`)
 - `skills/<skill-name>/` — one directory per skill (the `skills` key in the Codex manifest defaults to `./skills/`)
 - `agents/` — optional. Plugin-level role definitions that the plugin's own skills can discover by globbing `<plugin-root>/agents/*.md`
 
@@ -104,7 +104,7 @@ Always validate before committing:
 - Each modified skill: `/skill-tools:skill-validator <path-to-skill-directory>` (markdown lint + content consistency that Anthropic's validator does not cover)
 - Whole repo (Claude side): `claude plugin validate .` for the marketplace, plus `claude plugin validate plugins/<name>` for each plugin
 
-The Codex marketplace and per-plugin `.codex-plugin/plugin.json` files are not currently validated by an automated tool — verify them by adding the marketplace to a real Codex install (`codex marketplace add github:jamessawle/skills`).
+The Codex marketplace and per-plugin `.codex-plugin/plugin.json` files are not currently validated by an automated tool — verify them by adding the marketplace to a real Codex install.
 
 ## Creating and improving skills
 
