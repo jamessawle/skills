@@ -9,24 +9,15 @@
   "plugins": [
     {
       "name": "pr-management",
+      "source": "./plugins/pr-management",
       "description": "Tools for managing and fixing open PRs",
-      "source": "./skills/pr-management",
-      "skills": [
-        "./fix-pr",
-        "./list-prs",
-        "./merge-queue",
-        "./review-pr"
-      ]
+      "category": "developer-tools"
     },
     {
       "name": "skill-tools",
+      "source": "./plugins/skill-tools",
       "description": "Development tools for validating and maintaining skill definitions",
-      "source": "./skills/skill-tools",
-      "skills": [
-        "./skill-validator",
-        "./marketplace-validator",
-        "./role-validator"
-      ]
+      "category": "developer-tools"
     }
   ]
 }

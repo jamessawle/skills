@@ -1,27 +1,40 @@
 # AI Coding Skills
 
-This repo (`jamessawle/skills` on GitHub) contains reusable skills for AI coding agents. It is published as a Claude Code marketplace (`jamessawle-marketplace`), but the skills themselves are agent-agnostic — the `SKILL.md` format works across any agent that supports it.
+This repo (`jamessawle/skills` on GitHub) contains reusable skills for AI coding agents, packaged as native plugins for both Claude Code and Codex. The `SKILL.md` format itself is agent-agnostic — the dual-marketplace setup just exposes the same plugins through each agent's native plugin system.
 
 ## Repo structure
 
 ```
-.claude-plugin/marketplace.json   # Marketplace definition — lists all plugins
-agents/                           # Reusable role definitions for specialist agents
-  engineer.md                     # Software engineer — correctness and reliability
-  security-engineer.md            # Security engineer — threats and vulnerabilities
-  performance-engineer.md         # Performance engineer — efficiency and scale
-  qa-engineer.md                  # QA engineer — test quality and verification
-  architect.md                    # Architect — design and maintainability
-skills/
-  pr-management/                  # Plugin: PR management tools
-    fix-pr/SKILL.md               # Diagnose and fix broken PRs
-    list-prs/SKILL.md             # List open PRs with enriched state
-    merge-queue/SKILL.md          # Batch merge approved PRs
-    review-pr/SKILL.md            # Review PRs with parallel specialist agents
-  skill-tools/                    # Plugin: Skill development tools
-    skill-validator/SKILL.md      # Validate a single skill
-    marketplace-validator/SKILL.md # Validate the whole marketplace
+.claude-plugin/marketplace.json     # Claude Code marketplace — lists all plugins
+.agents/plugins/marketplace.json    # Codex marketplace — lists the same plugins
+agents/                             # Reusable role definitions for specialist agents
+  engineer.md                       # Software engineer — correctness and reliability
+  security-engineer.md              # Security engineer — threats and vulnerabilities
+  performance-engineer.md           # Performance engineer — efficiency and scale
+  qa-engineer.md                    # QA engineer — test quality and verification
+  architect.md                      # Architect — design and maintainability
+plugins/
+  pr-management/                    # Plugin: PR management tools
+    .claude-plugin/plugin.json      # Claude plugin manifest
+    .codex-plugin/plugin.json       # Codex plugin manifest
+    skills/
+      fix-pr/SKILL.md               # Diagnose and fix broken PRs
+      list-prs/SKILL.md             # List open PRs with enriched state
+      merge-queue/SKILL.md          # Batch merge approved PRs
+      review-pr/SKILL.md            # Review PRs with parallel specialist agents
+  skill-tools/                      # Plugin: Skill development tools
+    .claude-plugin/plugin.json
+    .codex-plugin/plugin.json
+    skills/
+      skill-validator/SKILL.md      # Validate a single skill
+      marketplace-validator/SKILL.md # Validate the whole marketplace
+      role-validator/SKILL.md       # Validate role definition files
 ```
+
+Each plugin directory contains:
+- `.claude-plugin/plugin.json` — Claude Code plugin manifest (`name`, `version`, `description`, `license`, …)
+- `.codex-plugin/plugin.json` — Codex plugin manifest (`name`, `version`, `description`, `license`, `skills`)
+- `skills/<skill-name>/` — one directory per skill (the `skills` key in the Codex manifest defaults to `./skills/`)
 
 Each skill directory contains:
 - `SKILL.md` — the skill definition with YAML frontmatter and markdown instructions
@@ -67,18 +80,21 @@ These fields are not part of the Agent Skills spec but are used by Claude Code:
 
 ## Adding a new skill
 
-1. Create a directory under the appropriate plugin: `skills/<plugin-name>/<skill-name>/`
+1. Create a directory under the appropriate plugin: `plugins/<plugin-name>/skills/<skill-name>/`
 2. Write `SKILL.md` with frontmatter and workflow
-3. Add the skill path to `marketplace.json` under the plugin's `skills` array
-4. Run `/skill-tools:marketplace-validator` to validate everything
-5. Update `README.md` with the new skill
+3. Run `/skill-tools:marketplace-validator` to validate everything (skills are discovered by scanning the plugin's `skills/` directory — no marketplace edit needed)
+4. Update `README.md` with the new skill
 
 ## Adding a new plugin
 
-1. Create a directory: `skills/<plugin-name>/`
-2. Add at least one skill inside it
-3. Add a plugin entry to `marketplace.json` with `name`, `description`, `source`, and `skills`
-4. Validate with `/skill-tools:marketplace-validator`
+1. Create a directory: `plugins/<plugin-name>/`
+2. Add `.claude-plugin/plugin.json` with `name`, `version`, `description`, `license` (and optional `author`, `homepage`, `repository`, `keywords`)
+3. Add `.codex-plugin/plugin.json` with `name`, `version`, `description`, `license`, `skills: "./skills/"`
+4. Add at least one skill under `plugins/<plugin-name>/skills/<skill-name>/`
+5. Add an entry to **both** marketplace manifests:
+   - `.claude-plugin/marketplace.json`: `{ "name", "source": "./plugins/<name>", "description", "category" }`
+   - `.agents/plugins/marketplace.json`: `{ "name", "source": { "source": "local", "path": "./plugins/<name>" }, "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }, "category" }`
+6. Validate with `/skill-tools:marketplace-validator`
 
 ## Validation
 
@@ -102,7 +118,7 @@ Typical workflow: draft with `/skill-creator`, validate with `/skill-tools:marke
 Before creating a pull request:
 1. Run `/skill-tools:marketplace-validator` — all checks must pass
 2. Ensure `README.md` is updated if skills were added or removed
-3. Ensure `marketplace.json` includes any new skill paths
+3. Ensure both `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` list any new plugin
 4. Commit messages should describe what changed and why
 
 ## Key conventions
