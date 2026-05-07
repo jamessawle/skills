@@ -9,10 +9,6 @@
       "source": {
         "source": "local",
         "path": "./plugins/pr-management"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
       }
     },
     {
@@ -20,10 +16,6 @@
       "source": {
         "source": "local",
         "path": "./plugins/skill-tools"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
       }
     }
   ]
