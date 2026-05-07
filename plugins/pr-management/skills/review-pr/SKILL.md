@@ -75,17 +75,9 @@ git -C "$REVIEW_DIR" fetch origin "pull/<number>/head:pr-review"
 git -C "$REVIEW_DIR" checkout pr-review
 ```
 
-If the clone fails (e.g. very large repo or network issues), fall back to fetching the diff via `gh pr diff` and passing it directly to subagents. Note this fallback in the subagent prompts.
+If any of the above commands fails, clean up `$REVIEW_DIR` and stop with the error message. Do not attempt to review without the checkout.
 
-For large repositories, check size before cloning:
-
-```bash
-gh api "repos/<owner>/<repo>" --jq '.size'
-```
-
-If the repo is over 500000 KB, skip the clone and use the diff-only fallback.
-
-Also fetch the diff via the GitHub API (avoids shallow clone limitations):
+Also fetch the diff via the GitHub API (more reliable than `git diff` against a shallow clone, and matches how GitHub itself presents the diff):
 
 ```bash
 gh pr diff <number> [--repo <owner/repo>] > "$REVIEW_DIR/.pr-diff.txt"
