@@ -56,9 +56,9 @@ For each skill directory found in Step 2, delegate to the `skill-validator` skil
 
 ### Step 4: Role validation
 
-If an `agents/` directory exists at the marketplace root, delegate to the `role-validator` skill to validate all role files. Pass the `agents/` directory path as the argument.
+For each plugin discovered in Step 2, check whether `<plugin-root>/agents/` exists. If it does, delegate to the `role-validator` skill to validate all role files in that directory. Pass the plugin's `agents/` directory path as the argument.
 
-If no `agents/` directory exists, skip this step (roles are optional).
+Plugins without an `agents/` directory are skipped — plugin-level role definitions are optional.
 
 ### Step 5: Summary
 

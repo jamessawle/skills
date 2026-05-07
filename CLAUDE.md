@@ -7,16 +7,16 @@ This repo (`jamessawle/skills` on GitHub) contains reusable skills for AI coding
 ```
 .claude-plugin/marketplace.json     # Claude Code marketplace — lists all plugins
 .agents/plugins/marketplace.json    # Codex marketplace — lists the same plugins
-agents/                             # Reusable role definitions for specialist agents
-  engineer.md                       # Software engineer — correctness and reliability
-  security-engineer.md              # Security engineer — threats and vulnerabilities
-  performance-engineer.md           # Performance engineer — efficiency and scale
-  qa-engineer.md                    # QA engineer — test quality and verification
-  architect.md                      # Architect — design and maintainability
 plugins/
   pr-management/                    # Plugin: PR management tools
     .claude-plugin/plugin.json      # Claude plugin manifest
     .codex-plugin/plugin.json       # Codex plugin manifest
+    agents/                         # Plugin-level role definitions (consumed by review-pr)
+      engineer.md                   # Software engineer — correctness and reliability
+      security-engineer.md          # Security engineer — threats and vulnerabilities
+      performance-engineer.md       # Performance engineer — efficiency and scale
+      qa-engineer.md                # QA engineer — test quality and verification
+      architect.md                  # Architect — design and maintainability
     skills/
       fix-pr/SKILL.md               # Diagnose and fix broken PRs
       list-prs/SKILL.md             # List open PRs with enriched state
@@ -35,6 +35,7 @@ Each plugin directory contains:
 - `.claude-plugin/plugin.json` — Claude Code plugin manifest (`name`, `version`, `description`, `license`, …)
 - `.codex-plugin/plugin.json` — Codex plugin manifest (`name`, `version`, `description`, `license`, `skills`)
 - `skills/<skill-name>/` — one directory per skill (the `skills` key in the Codex manifest defaults to `./skills/`)
+- `agents/` — optional. Plugin-level role definitions that the plugin's own skills can discover by globbing `<plugin-root>/agents/*.md`
 
 Each skill directory contains:
 - `SKILL.md` — the skill definition with YAML frontmatter and markdown instructions
@@ -43,7 +44,7 @@ Each skill directory contains:
 
 ## Role definitions
 
-The `agents/` directory contains reusable role definitions — personas that capture how each specialist thinks, what they prioritise, and what expertise they bring. Skills dynamically discover roles by globbing `agents/*.md` and selecting which roles are relevant to the task at hand.
+A plugin's `agents/` directory contains reusable role definitions — personas that capture how each specialist thinks, what they prioritise, and what expertise they bring. Skills inside that plugin dynamically discover roles by globbing `<plugin-root>/agents/*.md` and selecting which roles are relevant to the task at hand. Today only `pr-management` ships role definitions (consumed by `review-pr`); other plugins can add their own `agents/` directory if they need specialist personas.
 
 Each role file must follow this structure (enforced by `/skill-tools:role-validator`):
 
@@ -57,9 +58,9 @@ Role files do not contain task-specific instructions (output format, context fra
 
 ## Adding a new role
 
-1. Create a markdown file in `agents/` (e.g. `agents/devops-engineer.md`)
+1. Decide which plugin owns the role and create the file under its `agents/` directory (e.g. `plugins/pr-management/agents/devops-engineer.md`)
 2. Follow the four-section structure: identity statement, Perspective, Areas of expertise, Severity calibration
-3. Skills discover roles automatically via `agents/*.md` globbing — no registration step is needed
+3. Skills in that plugin discover roles automatically via `<plugin-root>/agents/*.md` globbing — no registration step is needed
 
 ## Skill standard
 

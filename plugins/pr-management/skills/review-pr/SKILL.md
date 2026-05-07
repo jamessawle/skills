@@ -2,7 +2,7 @@
 name: review-pr
 description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Dynamically discovers specialist roles from the agents/ directory and spawns them in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
 license: MIT
-compatibility: Requires GitHub CLI (gh) authenticated with read access to the target repo. Requires agents/*.md role definitions at the marketplace repository root.
+compatibility: Requires GitHub CLI (gh) authenticated with read access to the target repo. Requires agents/*.md role definitions at the plugin root (alongside .claude-plugin/ and .codex-plugin/).
 allowed-tools: Bash, Read, Grep, Glob, Agent
 argument-hint: "[owner/repo] [pr-number]"
 metadata:
@@ -95,7 +95,7 @@ Reuse the `baseRefName` value already fetched in Step 1 — do not make a redund
 
 ### Step 3: Discover and select roles
 
-Resolve the marketplace repository root by walking up from this SKILL.md file's own directory until you find a directory containing `CLAUDE.md`. Glob `agents/*.md` from there — not from the cloned PR repo. If no role files are found, report an error ("No role definitions found at agents/*.md — ensure the agents directory is present at the marketplace repository root") and stop.
+Resolve the plugin root by walking up from this SKILL.md file's own directory until you find a directory containing `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`. Glob `agents/*.md` from inside that plugin root — not from the cloned PR repo. If no role files are found, report an error ("No role definitions found at <plugin-root>/agents/*.md — ensure the agents directory is present inside the plugin") and stop.
 
 Read each role file to evaluate relevance. Based on each role's identity, perspective, and areas of expertise — combined with the PR context (languages, file types, scope, PR type) — decide which roles would add value to this review. The general principle: skip roles whose areas of expertise have no overlap with the file types and content in the changeset. Common patterns:
 
