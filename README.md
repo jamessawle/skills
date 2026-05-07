@@ -16,28 +16,22 @@ Reusable skills for AI coding agents, packaged as native plugins for both Claude
 
 ## Installation
 
+Both agents can install this marketplace directly from GitHub — no clone required.
+
 ### Claude Code
 
-Add this repo as a marketplace in `~/.claude/settings.json`:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "jamessawle-marketplace": {
-      "source": { "source": "github", "repo": "jamessawle/skills" }
-    }
-  }
-}
+```text
+/plugin marketplace add jamessawle/skills
 ```
 
-Then run `/plugin marketplace add jamessawle-marketplace` and install the plugins you want.
+Then `/plugin install pr-management` (or `skill-tools`) from the marketplace picker.
 
 ### Codex
 
-Clone the repo and add it as a local marketplace:
-
 ```bash
-codex marketplace add jamessawle-skills /path/to/jamessawle/skills
+codex marketplace add github:jamessawle/skills
 ```
 
-Or point Codex at this repo as a GitHub marketplace source. The Codex manifest lives at `.agents/plugins/marketplace.json`.
+Then run `codex` and pick plugins from the marketplace picker, or install directly with `codex plugin install pr-management`.
+
+Pin to a specific ref with `--ref`, e.g. `codex marketplace add github:jamessawle/skills --ref v1.0.0`.
