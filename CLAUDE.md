@@ -5,8 +5,8 @@ This repo (`jamessawle/skills` on GitHub) contains reusable skills for AI coding
 ## Repo structure
 
 ```
-.claude-plugin/marketplace.json     # Claude Code marketplace — lists all plugins
-.agents/plugins/marketplace.json    # Codex marketplace — lists the same plugins
+.claude-plugin/marketplace.json     # Claude Code marketplace (path required by Claude Code)
+.agents/plugins/marketplace.json    # Codex marketplace (path required by Codex)
 plugins/
   pr-management/                    # Plugin: PR management tools
     .claude-plugin/plugin.json      # Claude plugin manifest
