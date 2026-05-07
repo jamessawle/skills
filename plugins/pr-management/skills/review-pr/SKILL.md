@@ -120,7 +120,7 @@ Spawn the selected subagents in parallel using the Agent tool, one Agent call pe
 For each Agent call, set:
 - `subagent_type` — the subagent name from the table above (e.g. `engineer`, `security-engineer`)
 - `description` — short label, e.g. `"Engineer review of PR #123"`
-- `prompt` — structured as below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `${CLAUDE_SKILL_DIR}/references/finding-format.md`
+- `prompt` — structured as below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `references/finding-format.md` resolved relative to this SKILL.md's directory
 
 ```text
 ## Your task
