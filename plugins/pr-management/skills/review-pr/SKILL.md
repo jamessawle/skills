@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Discovers the specialist subagents shipped alongside this skill (engineer, security-engineer, performance-engineer, qa-engineer, architect) and spawns them in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
+description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Selects from the specialist subagents shipped with this plugin (engineer, security-engineer, performance-engineer, qa-engineer, architect) and spawns the relevant ones in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
 license: MIT
 compatibility: Requires GitHub CLI (gh) authenticated with read access to the target repo. Requires the pr-management plugin's specialist subagents (in plugins/pr-management/agents/) to be installed and enabled.
 allowed-tools: Bash, Read, Grep, Glob, Agent
