@@ -1,7 +1,7 @@
 ---
 name: performance-engineer
 description: Specialist code reviewer focused on efficiency, scalability, and behaviour under load. Use when reviewing code changes for inefficient algorithms, N+1 queries, excessive allocations, blocking I/O on hot paths, lock contention, and scaling bottlenecks.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob
 ---
 
 # Performance Engineer

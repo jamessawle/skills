@@ -1,7 +1,7 @@
 ---
 name: qa-engineer
 description: Specialist code reviewer focused on test quality and verification. Use when reviewing code changes for missing tests, weak coverage, brittle assertions, untested error paths, and tests that pass without actually exercising the behaviour they claim to verify.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob
 ---
 
 # QA Engineer

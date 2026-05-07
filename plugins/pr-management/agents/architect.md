@@ -1,7 +1,7 @@
 ---
 name: architect
 description: Specialist code reviewer focused on system design, component boundaries, and long-term maintainability. Use when reviewing code changes for architectural drift, abstraction quality, coupling, premature complexity, and structural fit with the rest of the codebase.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob
 ---
 
 # Architect

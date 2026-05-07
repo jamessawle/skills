@@ -46,7 +46,7 @@ A plugin's `agents/` directory contains specialist subagents — personas that c
 
 Each role file must follow this structure:
 
-1. **YAML frontmatter** — `name` (matching filename, lowercase + hyphens), `description` (when to use this subagent — used by Claude/Codex for trigger selection), and `tools` (comma-delimited tool list — usually `Read, Grep, Glob, Bash` for read-only review specialists)
+1. **YAML frontmatter** — `name` (matching filename, lowercase + hyphens), `description` (when to use this subagent — used by Claude/Codex for trigger selection), and `tools` (comma-delimited tool list — usually `Read, Grep, Glob` for read-only review specialists; only add `Bash` if the role genuinely needs to run shell commands rather than have the calling skill run them on its behalf)
 2. **H1 title** — the role name (e.g. `# Software Engineer`), first line of the body
 3. **Identity statement** — 1-2 sentences immediately after the title describing who the role is
 4. **`## Perspective`** — how this role thinks about code, their mental model and trade-off preferences
