@@ -119,8 +119,10 @@ Spawn the selected reviewers in parallel using the Agent tool, one Agent call pe
 
 **If your environment supports plugin-defined `subagent_type` dispatch** (Claude Code does):
 
+Plugin-defined subagents in Claude Code are namespaced by plugin. Use the form `<plugin-name>:<role>` — for this plugin, that's `pr-management:engineer`, `pr-management:security-engineer`, `pr-management:performance-engineer`, `pr-management:qa-engineer`, `pr-management:architect`. You can confirm the registered names by running `claude agents`.
+
 For each Agent call, set:
-- `subagent_type` — the subagent name from the table above (e.g. `engineer`, `security-engineer`)
+- `subagent_type` — the namespaced subagent name (e.g. `pr-management:engineer`)
 - `description` — short label, e.g. `"Engineer review of PR #123"`
 - `prompt` — the template below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `references/finding-format.md` resolved relative to this SKILL.md's directory
 
