@@ -1,0 +1,9 @@
+{
+  "name": "skill-tools",
+  "version": "1.0.0",
+  "description": "Development tools for validating and maintaining skill definitions.",
+  "keywords": ["skills", "validator", "tooling"],
+  "interface": {
+    "category": "developer-tools"
+  }
+}

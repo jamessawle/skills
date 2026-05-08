@@ -1,0 +1,22 @@
+{
+  "name": "jamessawle-marketplace",
+  "interface": {
+    "displayName": "James Sawle Skills"
+  },
+  "plugins": [
+    {
+      "name": "pr-management",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pr-management"
+      }
+    },
+    {
+      "name": "skill-tools",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skill-tools"
+      }
+    }
+  ]
+}

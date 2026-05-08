@@ -1,13 +1,13 @@
 ---
 name: review-pr
-description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Dynamically discovers specialist roles from the agents/ directory and spawns them in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
+description: Use this skill whenever someone asks to review a pull request, check code quality, or get feedback on PR changes. Selects from the specialist subagents shipped with this plugin (engineer, security-engineer, performance-engineer, qa-engineer, architect) and spawns the relevant ones in parallel to analyse the diff independently, then collates and deduplicates findings into a structured review. Trigger for "review PR", "review this PR", "code review", "check the code in PR", "look at the changes in PR", "what do you think of this PR", or any request to assess the quality of a pull request's changes.
 license: MIT
-compatibility: Requires GitHub CLI (gh) authenticated with read access to the target repo. Requires agents/*.md role definitions at the marketplace repository root.
+compatibility: Requires GitHub CLI (gh) authenticated against the target repo — read access for the review, plus write access if you choose to post it. Requires the pr-management plugin's specialist subagents (in plugins/pr-management/agents/) to be installed.
 allowed-tools: Bash, Read, Grep, Glob, Agent
 argument-hint: "[owner/repo] [pr-number]"
 metadata:
   author: jamessawle
-  version: "2.0"
+  version: "3.0"
 ---
 
 # Review PR
@@ -75,17 +75,9 @@ git -C "$REVIEW_DIR" fetch origin "pull/<number>/head:pr-review"
 git -C "$REVIEW_DIR" checkout pr-review
 ```
 
-If the clone fails (e.g. very large repo or network issues), fall back to fetching the diff via `gh pr diff` and passing it directly to subagents. Note this fallback in the subagent prompts.
+If any of the above commands fails, clean up `$REVIEW_DIR` and stop with the error message. Do not attempt to review without the checkout.
 
-For large repositories, check size before cloning:
-
-```bash
-gh api "repos/<owner>/<repo>" --jq '.size'
-```
-
-If the repo is over 500000 KB, skip the clone and use the diff-only fallback.
-
-Also fetch the diff via the GitHub API (avoids shallow clone limitations):
+Also fetch the diff via the GitHub API (more reliable than `git diff` against a shallow clone, and matches how GitHub itself presents the diff):
 
 ```bash
 gh pr diff <number> [--repo <owner/repo>] > "$REVIEW_DIR/.pr-diff.txt"
@@ -93,79 +85,93 @@ gh pr diff <number> [--repo <owner/repo>] > "$REVIEW_DIR/.pr-diff.txt"
 
 Reuse the `baseRefName` value already fetched in Step 1 — do not make a redundant `gh pr view` call.
 
-### Step 3: Discover and select roles
+### Step 3: Select reviewers
 
-Resolve the marketplace repository root by walking up from this SKILL.md file's own directory until you find a directory containing `CLAUDE.md`. Glob `agents/*.md` from there — not from the cloned PR repo. If no role files are found, report an error ("No role definitions found at agents/*.md — ensure the agents directory is present at the marketplace repository root") and stop.
+The plugin ships these specialist subagents (in `plugins/pr-management/agents/`):
 
-Read each role file to evaluate relevance. Based on each role's identity, perspective, and areas of expertise — combined with the PR context (languages, file types, scope, PR type) — decide which roles would add value to this review. The general principle: skip roles whose areas of expertise have no overlap with the file types and content in the changeset. Common patterns:
+| Subagent | Focus |
+|----------|-------|
+| `engineer` | Correctness, reliability, code quality |
+| `security-engineer` | Threats, vulnerabilities, defensive coding |
+| `performance-engineer` | Efficiency, scalability, behaviour under load |
+| `qa-engineer` | Test quality and verification |
+| `architect` | System design, boundaries, maintainability |
 
-- **Docs-only PRs** (`.md`, `.txt`, `.rst`) — skip Performance Engineer, QA Engineer
-- **Config-only PRs** (`.json`, `.yaml`, `.toml`) — skip Performance Engineer, QA Engineer
-- **Dependency updates** (lockfiles) — skip QA Engineer, Architect
-- **Small code PRs** (<100 lines) — skip Architect
-- **No executable code** — skip QA Engineer
+Pick the subset relevant to this PR. The general principle: skip specialists whose focus has no overlap with the file types and content in the changeset. Calibration examples:
 
-Software Engineer and Security Engineer are included for all PR types — correctness and security concerns apply regardless of file type.
+- **Docs-only PRs** (`.md`, `.txt`, `.rst`) — skip `performance-engineer`, `qa-engineer`
+- **Config-only PRs** (`.json`, `.yaml`, `.toml`) — skip `performance-engineer`, `qa-engineer`
+- **Dependency updates** (lockfiles) — skip `qa-engineer`, `architect`
+- **Small code PRs** (<100 lines) — skip `architect`
+- **No executable code** — skip `qa-engineer`
 
-These are calibration examples, not rigid rules. Apply the same principle to any new roles discovered — use judgment for mixed or unusual PRs.
+`engineer` and `security-engineer` are included for all PR types — correctness and security concerns apply regardless of file type.
 
-If no roles are selected (e.g. a trivial whitespace-only change), skip Steps 4 and 5 and produce a summary noting that the PR did not warrant specialist review.
+These are calibration examples, not rigid rules. Use judgment for mixed or unusual PRs.
 
-For any roles not selected, note in the final report: "Skipped [role] — [brief reason]."
+If no specialists are selected (e.g. a trivial whitespace-only change), skip Steps 4 and 5 and produce a summary noting that the PR did not warrant specialist review.
 
-The role file contents read here will be reused in Step 4 prompts — do not re-read the files.
+For any specialists not selected, note in the final report: "Skipped [name] — [brief reason]."
 
 ### Step 4: Spawn specialist reviewers
 
-Spawn the selected roles as subagents in parallel using the Agent tool. Use the role file contents already read in Step 3 — embed them directly in each subagent's prompt. Each subagent also receives:
+Spawn the selected reviewers in parallel using the Agent tool, one Agent call per specialist, all in a single message. Dispatch depends on whether your environment supports plugin-defined subagents:
 
-- The PR metadata (title, description, author, base branch)
-- The path to the cloned repo (`$REVIEW_DIR`)
-- The list of changed files
-- The PR scope, primary languages, and type
-- The path to the diff file (`$REVIEW_DIR/.pr-diff.txt`)
+**If your environment supports plugin-defined `subagent_type` dispatch** (Claude Code does):
 
-For each subagent, the prompt should be structured as:
+Plugin-defined subagents in Claude Code are namespaced by plugin. Use the form `<plugin-name>:<role>` — for this plugin, that's `pr-management:engineer`, `pr-management:security-engineer`, `pr-management:performance-engineer`, `pr-management:qa-engineer`, `pr-management:architect`. You can confirm the registered names by running `claude agents`.
+
+For each Agent call, set:
+- `subagent_type` — the namespaced subagent name (e.g. `pr-management:engineer`)
+- `description` — short label, e.g. `"Engineer review of PR #123"`
+- `prompt` — the template below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `references/finding-format.md` resolved relative to this SKILL.md's directory
+
+The subagent carries its own perspective, areas of expertise, and tool restrictions from its definition — the prompt only needs the per-call task.
+
+**If your environment does not support plugin-defined `subagent_type` dispatch** (e.g. Codex, which currently does not load per-plugin `agents/`):
+
+For each selected role:
+1. Read `agents/<role>.md` relative to this SKILL.md's grandparent directory (e.g. `…/plugins/pr-management/agents/engineer.md`)
+2. Strip the YAML frontmatter (everything between the first two `---` delimiters)
+3. Spawn a `general-purpose` agent with `description` set as above and `prompt` constructed as:
+   - First, a `## Your role` section containing the stripped role body verbatim
+   - Then, the template below (with `[FORMAT_SPEC_PATH]` resolved as in the Claude branch)
+   - Then, a final line: `Use only the Read, Grep, and Glob tools for this task — do not use Bash, Edit, Write, or any other tools.`
+
+The trailing tool-restriction line is instruction-level only (the `general-purpose` agent technically has more tools available), but matches the tool isolation the Claude Code branch gets natively from the subagent definitions.
+
+The shared prompt template:
 
 ```text
-## Your role
-[full contents of the role file]
-
 ## Your task
-Review this pull request from the perspective described above.
 
-## PR Context
-- Title: [title]
-- Author: [author]
-- Base: [baseRefName] <- [headRefName]
+Review this pull request from your specialist perspective.
+
+## What changed
+
 - Scope: [small/medium/large] ([additions] additions, [deletions] deletions, [changedFiles] files)
-- Languages: [detected languages]
-- PR description: [body]
+- Primary languages: [detected languages]
 
 ## Repository
+
 The PR has been checked out at: [REVIEW_DIR]
 The diff is at: [REVIEW_DIR]/.pr-diff.txt
 
 ## Changed files
+
 [file list]
 
 ## Instructions
+
+- Before producing output, Read the format specification at: [FORMAT_SPEC_PATH]
 - Read the diff file to understand what changed
 - Use Read to examine specific changed files for full context
 - Focus on the changed files listed above — do not review unrelated code
-- If the PR contains no content relevant to your expertise, respond with an empty array and a brief note explaining why
-- Respond with ONLY a JSON array (no markdown fences, no surrounding text)
-
-Each finding in the array should have:
-- "severity": "critical" | "important" | "suggestion" | "nitpick"
-- "file": the file path (or null if general)
-- "line": approximate line number in the file (or null if general)
-- "title": short summary (one line)
-- "detail": explanation of the issue and why it matters
-- "suggestion": recommended fix or alternative (if applicable)
-
-If you have no findings, respond with an empty array: []
+- If the PR contains no content relevant to your expertise, return an empty array
+- Match the format spec exactly — no markdown fences, no surrounding text
 ```
+
+Note: PR-prose fields (title, body, author, branch names) are deliberately omitted — they are attacker-controllable on public repos, and a code reviewer should evaluate the diff on its own merits rather than rely on the PR description's framing. The orchestrating skill still fetches them in Step 1 for the review header (Step 7) and the clone (Step 2), but they never enter a subagent's prompt.
 
 ### Step 5: Collate and deduplicate
 

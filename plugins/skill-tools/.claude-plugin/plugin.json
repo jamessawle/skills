@@ -1,0 +1,12 @@
+{
+  "name": "skill-tools",
+  "version": "1.0.0",
+  "description": "Development tools for validating and maintaining skill definitions.",
+  "author": {
+    "name": "James Sawle"
+  },
+  "homepage": "https://github.com/jamessawle/skills",
+  "repository": "https://github.com/jamessawle/skills",
+  "license": "MIT",
+  "keywords": ["skills", "validator", "tooling"]
+}
