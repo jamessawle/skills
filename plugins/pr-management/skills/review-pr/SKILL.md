@@ -115,12 +115,30 @@ For any specialists not selected, note in the final report: "Skipped [name] — 
 
 ### Step 4: Spawn specialist reviewers
 
-Spawn the selected subagents in parallel using the Agent tool, one Agent call per specialist, all in a single message. The subagent already carries its own perspective and areas of expertise from its system prompt, so the per-call prompt only needs to point at the diff and changed files.
+Spawn the selected reviewers in parallel using the Agent tool, one Agent call per specialist, all in a single message. Dispatch depends on whether your environment supports plugin-defined subagents:
+
+**If your environment supports plugin-defined `subagent_type` dispatch** (Claude Code does):
 
 For each Agent call, set:
 - `subagent_type` — the subagent name from the table above (e.g. `engineer`, `security-engineer`)
 - `description` — short label, e.g. `"Engineer review of PR #123"`
-- `prompt` — structured as below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `references/finding-format.md` resolved relative to this SKILL.md's directory
+- `prompt` — the template below, with `[FORMAT_SPEC_PATH]` substituted with the absolute path to `references/finding-format.md` resolved relative to this SKILL.md's directory
+
+The subagent carries its own perspective, areas of expertise, and tool restrictions from its definition — the prompt only needs the per-call task.
+
+**If your environment does not support plugin-defined `subagent_type` dispatch** (e.g. Codex, which currently does not load per-plugin `agents/`):
+
+For each selected role:
+1. Read `agents/<role>.md` relative to this SKILL.md's grandparent directory (e.g. `…/plugins/pr-management/agents/engineer.md`)
+2. Strip the YAML frontmatter (everything between the first two `---` delimiters)
+3. Spawn a `general-purpose` agent with `description` set as above and `prompt` constructed as:
+   - First, a `## Your role` section containing the stripped role body verbatim
+   - Then, the template below (with `[FORMAT_SPEC_PATH]` resolved as in the Claude branch)
+   - Then, a final line: `Use only the Read, Grep, and Glob tools for this task — do not use Bash, Edit, Write, or any other tools.`
+
+The trailing tool-restriction line is instruction-level only (the `general-purpose` agent technically has more tools available), but matches the tool isolation the Claude Code branch gets natively from the subagent definitions.
+
+The shared prompt template:
 
 ```text
 ## Your task
