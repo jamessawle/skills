@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Tools for managing and fixing open PRs — list with enriched state, fix broken PRs (conflicts, CI failures), batch-merge approved PRs, and review with parallel specialist agents.",
   "keywords": ["pull-request", "github", "code-review", "merge", "ci"],
-  "skills": "./skills/",
   "interface": {
     "category": "developer-tools"
   }

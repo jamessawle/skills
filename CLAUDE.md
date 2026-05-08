@@ -31,8 +31,8 @@ plugins/
 
 Each plugin directory contains:
 - `.claude-plugin/plugin.json` — Claude Code plugin manifest (`name`, `version`, `description`, `license`, …)
-- `.codex-plugin/plugin.json` — Codex plugin manifest (`name`, `version`, `description`, `keywords`, `skills`, optional `interface`)
-- `skills/<skill-name>/` — one directory per skill (the `skills` key in the Codex manifest defaults to `./skills/`)
+- `.codex-plugin/plugin.json` — Codex plugin manifest (`name`, `version`, `description`, `keywords`, optional `interface`)
+- `skills/<skill-name>/` — one directory per skill (auto-discovered at this conventional path by both Claude Code and Codex; only set the manifest's `skills` field if the directory is in a non-standard location)
 - `agents/` — optional. Plugin-level role definitions that the plugin's own skills can discover by globbing `<plugin-root>/agents/*.md`
 
 Each skill directory contains:
@@ -91,7 +91,7 @@ These fields are not part of the Agent Skills spec but are used by Claude Code:
 
 1. Create a directory: `plugins/<plugin-name>/`
 2. Add `.claude-plugin/plugin.json` with `name`, `version`, `description`, `license` (and optional `author`, `homepage`, `repository`, `keywords`)
-3. Add `.codex-plugin/plugin.json` with `name`, `version`, `description`, `keywords`, `skills: "./skills/"`, and (optional) `interface.category` for grouping in the marketplace picker — note that `license` is not part of the Codex manifest spec
+3. Add `.codex-plugin/plugin.json` with `name`, `version`, `description`, `keywords`, and (optional) `interface.category` for grouping in the marketplace picker — `skills` defaults to `./skills/` so the field is unnecessary when the directory is at the conventional location, and `license` is not part of the Codex manifest spec
 4. Add at least one skill under `plugins/<plugin-name>/skills/<skill-name>/`
 5. Add an entry to **both** marketplace manifests:
    - `.claude-plugin/marketplace.json`: `{ "name", "source": "./plugins/<name>", "description", "category" }`
