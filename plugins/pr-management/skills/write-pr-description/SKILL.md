@@ -7,7 +7,7 @@ allowed-tools: Bash, Read
 argument-hint: "[branch-name]"
 metadata:
   author: jamessawle
-  version: "1.1"
+  version: "1.0"
 ---
 
 # Write PR Description
@@ -92,7 +92,13 @@ There is no required template. Use sections only when they carry weight. A typic
 
 If a linked issue exists, end with `Closes #N` so the issue auto-closes on merge.
 
-Before drafting, read `references/examples.md` (resolved relative to this SKILL.md) for three worked bad-vs-good examples covering a non-trivial bug fix, a one-line typo, and a refactor. Pick the closest archetype to the PR being described and use it as a structural model — do not copy phrasing.
+Before drafting, read the worked example closest to this PR's archetype (paths relative to this SKILL.md). Read one, not all three:
+
+- `references/bug-fix.md` — bug fix where the choice of fix is non-obvious
+- `references/trivial.md` — single-line fix, typo, or dependency bump where ceremony would be noise
+- `references/refactor.md` — refactor where the "why" is the entire point
+
+Use the example as a structural model — do not copy phrasing. If the PR straddles archetypes (e.g. a bug fix that also restructures a module), read the closest match and expect to deviate.
 
 ### Step 6: Present
 
