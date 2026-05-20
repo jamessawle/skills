@@ -17,6 +17,13 @@
         "source": "local",
         "path": "./plugins/skill-tools"
       }
+    },
+    {
+      "name": "story-tools",
+      "source": {
+        "source": "local",
+        "path": "./plugins/story-tools"
+      }
     }
   ]
 }

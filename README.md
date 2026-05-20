@@ -12,6 +12,7 @@ Reusable skills for AI coding agents, packaged as native plugins for both Claude
 | [`review-pr`](plugins/pr-management/skills/review-pr/SKILL.md) | Review a PR with parallel specialist reviewers (correctness, security, performance, testing, architecture) and produce a structured report. | pr-management | [GitHub CLI](https://cli.github.com/) (`gh`) |
 | [`write-pr-description`](plugins/pr-management/skills/write-pr-description/SKILL.md) | Draft a PR description focused on the reasoning behind the change — problem, approach, trade-offs, verification — rather than restating the diff. | pr-management | git (optionally [GitHub CLI](https://cli.github.com/) (`gh`) for linked issues) |
 | [`skill-validator`](plugins/skill-tools/skills/skill-validator/SKILL.md) | Validate a single skill — checks markdown formatting, frontmatter fields, and content consistency. | skill-tools | Node.js |
+| [`break-down-story`](plugins/story-tools/skills/break-down-story/SKILL.md) | Break a Jira story into vertically releasable child slices — uses Jira context and the local service repo, outputs markdown for review. | story-tools | [Atlassian MCP](https://www.atlassian.com/platform/remote-mcp-server) |
 
 ## Installation
 
@@ -23,7 +24,7 @@ Both agents can install this marketplace directly from GitHub — no clone requi
 /plugin marketplace add jamessawle/skills
 ```
 
-Then `/plugin install pr-management` (or `skill-tools`) from the marketplace picker.
+Then `/plugin install pr-management` (or `skill-tools`, `story-tools`) from the marketplace picker.
 
 ### Codex
 

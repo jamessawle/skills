@@ -18,6 +18,12 @@
       "source": "./plugins/skill-tools",
       "description": "Development tools for validating and maintaining skill definitions",
       "category": "developer-tools"
+    },
+    {
+      "name": "story-tools",
+      "source": "./plugins/story-tools",
+      "description": "Tools for working with user stories",
+      "category": "developer-tools"
     }
   ]
 }

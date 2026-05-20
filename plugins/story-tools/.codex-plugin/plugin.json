@@ -1,0 +1,9 @@
+{
+  "name": "story-tools",
+  "version": "0.1.0",
+  "description": "Tools for working with user stories — break a Jira story into vertically releasable child slices using Jira context and the local service repo.",
+  "keywords": ["jira", "user-stories", "planning", "breakdown"],
+  "interface": {
+    "category": "developer-tools"
+  }
+}
