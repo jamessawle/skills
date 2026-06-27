@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""PreToolUse guard — the single source of truth for git permission policy:
+
+  - DENY  a push whose destination branch is `main` — an explicit refspec
+          (`origin main`, `HEAD:main`, `feature:main`), or a bare push /
+          `git push <remote>` while the current branch is `main` (no `main`
+          appears in the command then, so the branch is resolved with git).
+  - DENY  any attempt to bypass git hooks (`--no-verify`, `git commit -n`).
+  - ASK   before any force-push (rewrites remote history).
+  - ALLOW recognised read/safe git commands, including normal feature pushes.
+  - DEFER otherwise: emit no decision so the normal permission prompt applies.
+
+Denials use exit code 2, not a JSON `"deny"` decision. An exit-2 block stops the
+call *before* the permission rules are evaluated, so a push to `main` is blocked
+even on a machine whose settings.json carries a broad `Bash(git *)` allow rule;
+a JSON deny is only one input to that later rule resolution. The block reason is
+written to stderr, which Claude Code surfaces to the model.
+
+A hook `allow` approves the whole Bash call, so the command is tokenised with
+shlex (quote-aware) and split on shell operators; every segment must be a
+vouched-for git command before the call is auto-allowed. A dangerous part (e.g.
+`git reset --hard`) or any non-git segment downgrades the call to a prompt;
+deny/ask scan conservatively and win over allow. Using a real tokeniser means a
+commit message that merely *mentions* `--no-verify` is not mistaken for the flag.
+
+Read-only pager/filter tools (tail, head, grep, …) are allowlisted as harmless
+pipe targets, so the everyday `git push … | tail` and `git log | grep x` still
+auto-approve rather than falling through to a prompt. At least one git segment
+must be present — a call with no git command is always deferred.
+"""
+
+import json
+import re
+import shlex
+import subprocess
+import sys
+
+# git subcommands safe to auto-approve. Anything else (reset, clean, gc,
+# reflog, …) is left to defer to the normal permission prompt.
+SAFE = {
+    "status", "diff", "log", "show", "branch", "checkout", "switch", "add",
+    "commit", "fetch", "pull", "rebase", "merge", "restore", "stash", "remote",
+    "rev-parse", "tag", "describe", "blame", "shortlog", "ls-files",
+    "symbolic-ref",
+}
+# Read-only pager/filter tools that are harmless as pipe targets, so a git
+# command piped through them (`git log | grep x`, `git push … | tail`) can still
+# be vouched for. Deliberately excludes anything that writes or executes (tee,
+# xargs, sed, awk, …) — those still downgrade the call to a prompt.
+SAFE_PIPE = {
+    "cat", "head", "tail", "less", "more", "grep", "egrep", "fgrep", "wc",
+    "sort", "uniq", "nl", "cut", "tr", "rev", "column",
+}
+OPERATORS = {"&&", "||", "|", "|&", ";", "&", "(", ")"}
+SHORT_NO_VERIFY = re.compile(r"-[A-Za-z]*n[A-Za-z]*")  # -n, -nm, -vn, … (commit)
+
+
+def emit(decision, reason):
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": decision,
+        "permissionDecisionReason": reason,
+    }}))
+    sys.exit(0)
+
+
+def block(reason):
+    """Hard-block the call: exit 2 stops it before permission rules apply, so it
+    beats even a broad allow rule. The reason goes to stderr for Claude Code."""
+    print(reason, file=sys.stderr)
+    sys.exit(2)
+
+
+def current_branch():
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return ""
+
+
+def segments(cmd):
+    """Quote-aware split into command segments (lists of tokens)."""
+    lexer = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    out, cur = [], []
+    for tok in lexer:  # may raise ValueError on unbalanced quotes
+        if tok in OPERATORS:
+            if cur:
+                out.append(cur)
+                cur = []
+        else:
+            cur.append(tok)
+    if cur:
+        out.append(cur)
+    return out
+
+
+def push_verdict(args):
+    """`args` are the tokens after `git push`. Returns deny|ask|safe."""
+    force = False
+    positionals = []
+    for tok in args:
+        if tok in ("--force", "-f") or tok.startswith("--force-with-lease"):
+            force = True
+        elif tok.startswith("-"):
+            continue
+        else:
+            positionals.append(tok)
+    refspecs = positionals[1:]  # first positional is the remote
+    targets = []
+    if not refspecs:
+        targets.append(current_branch())  # bare push → current branch
+    else:
+        for spec in refspecs:
+            if spec.startswith("+"):  # +refspec forces that ref
+                force, spec = True, spec[1:]
+            dest = spec.split(":")[-1] if ":" in spec else spec
+            targets.append(current_branch() if dest == "HEAD" else dest)
+    if any(t == "main" for t in targets):
+        return "deny"
+    return "ask" if force else "safe"
+
+
+def main():
+    raw = sys.stdin.read()
+    try:
+        cmd = json.loads(raw).get("tool_input", {}).get("command", "")
+    except Exception:
+        cmd = raw
+    if not cmd:
+        return
+
+    try:
+        segs = segments(cmd)
+    except ValueError:
+        return  # can't parse safely → defer to the normal prompt
+
+    has_deny = has_ask = False
+    deny_reason = ask_reason = ""
+    all_safe = True
+    saw_git = False
+
+    for tokens in segs:
+        if not tokens or tokens[0] != "git":
+            if not tokens or tokens[0] not in SAFE_PIPE:
+                all_safe = False  # non-git segment: can't vouch for the whole call
+            continue  # harmless pager/filter: doesn't block, but can't vouch alone
+        saw_git = True
+        sub = tokens[1] if len(tokens) > 1 else ""
+        args = tokens[2:]
+
+        # Bypassing git hooks is never allowed, whatever the subcommand.
+        if "--no-verify" in args or (
+            sub == "commit" and any(SHORT_NO_VERIFY.fullmatch(a) for a in args)
+        ):
+            has_deny, deny_reason = True, "Bypassing git hooks (--no-verify) is not allowed."
+
+        if sub == "push":
+            verdict = push_verdict(args)
+            if verdict == "deny":
+                has_deny, deny_reason = True, "Pushes to main are not allowed — use a feature branch and open a PR."
+            elif verdict == "ask":
+                has_ask, ask_reason = True, "Force-push rewrites remote history — confirm before proceeding."
+        elif sub not in SAFE:
+            all_safe = False  # unknown/dangerous git subcommand → defer
+
+    if not saw_git:
+        return
+    if has_deny:
+        block(deny_reason)
+    if has_ask:
+        emit("ask", ask_reason)
+    if all_safe:
+        emit("allow", "Recognised safe git command.")
+
+
+if __name__ == "__main__":
+    main()
