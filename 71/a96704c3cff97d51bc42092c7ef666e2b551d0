@@ -1,0 +1,45 @@
+uv.lock
+  s_8c49c29be20982::t_9c82863471b0b9 1-227
+Makefile
+  s_8c49c29be20982::t_d29df3609a2f4f 1-12
+plugins/git-guard/.claude-plugin/plugin.json
+  s_8c49c29be20982::t_743ad78342663d 1-12
+.github/workflows/pr.yml
+  s_8c49c29be20982::t_d2801e7419a65e 1-35
+README.md
+  s_8c49c29be20982::t_e044cde97ce204 17-24,35
+.claude/hooks/session-start.sh
+  s_8c49c29be20982::t_b501476c76d4a1 1-22
+plugins/git-guard/hooks/git-guard.py
+  s_8c49c29be20982::t_828e4b200904ac 1-155
+plugins/git-guard/hooks/test_git_guard.py
+  s_8c49c29be20982::t_ada4e38e1c9f95 1-129
+.pre-commit-config.yaml
+  s_8c49c29be20982::t_5674ea443f2d3d 1-10
+.claude-plugin/marketplace.json
+  s_8c49c29be20982::t_b4049ce0517577 27-32
+plugins/git-guard/README.md
+  s_8c49c29be20982::t_314311cd067629 1-44
+pyproject.toml
+  s_8c49c29be20982::t_5bc9ce7773416c 1-22
+plugins/git-guard/hooks/hooks.json
+  s_8c49c29be20982::t_60dbc62494f507 1-15
+.gitignore
+  s_8c49c29be20982::t_11cca1883c4656 4-7,10-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "71a96704c3cff97d51bc42092c7ef666e2b551d0",
+  "prompts": {},
+  "sessions": {
+    "s_8c49c29be20982": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "443323a0-3699-4606-8c56-d5adad07d741",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
