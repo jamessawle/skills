@@ -39,7 +39,7 @@ import sys
 # reflog, …) is left to defer to the normal permission prompt.
 SAFE = {
     "status", "diff", "log", "show", "branch", "checkout", "switch", "add",
-    "commit", "fetch", "pull", "rebase", "merge", "restore", "stash", "remote",
+    "commit", "fetch", "pull", "push", "rebase", "merge", "restore", "stash", "remote",
     "rev-parse", "tag", "describe", "blame", "shortlog", "ls-files",
     "symbolic-ref",
 }
@@ -79,9 +79,10 @@ def current_branch():
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             capture_output=True, text=True, timeout=5,
         )
-        return out.stdout.strip()
+        branch = out.stdout.strip()
+        return None if branch in ("", "HEAD") else branch
     except Exception:
-        return ""
+        return None
 
 
 def segments(cmd):
@@ -122,17 +123,22 @@ def push_verdict(args):
                 force, spec = True, spec[1:]
             dest = spec.split(":")[-1] if ":" in spec else spec
             targets.append(current_branch() if dest == "HEAD" else dest)
+    if any(t is None for t in targets):
+        return "ask"  # can't determine branch → safer to prompt
     if any(t == "main" for t in targets):
         return "deny"
     return "ask" if force else "safe"
 
 
 def main():
+    if sys.version_info < (3, 7):
+        return  # capture_output needs 3.7+; defer rather than crash
+
     raw = sys.stdin.read()
     try:
         cmd = json.loads(raw).get("tool_input", {}).get("command", "")
     except Exception:
-        cmd = raw
+        return
     if not cmd:
         return
 
@@ -141,8 +147,7 @@ def main():
     except ValueError:
         return  # can't parse safely → defer to the normal prompt
 
-    has_deny = has_ask = False
-    deny_reason = ask_reason = ""
+    has_ask = False
     all_safe = True
     saw_git = False
 
@@ -165,23 +170,21 @@ def main():
         if "--no-verify" in tokens[1:] or (
             sub == "commit" and any(SHORT_NO_VERIFY.fullmatch(a) for a in args)
         ):
-            has_deny, deny_reason = True, "Bypassing git hooks (--no-verify) is not allowed."
+            block("Bypassing git hooks (--no-verify) is not allowed.")
 
         if sub == "push":
             verdict = push_verdict(args)
             if verdict == "deny":
-                has_deny, deny_reason = True, "Pushes to main are not allowed — use a feature branch and open a PR."
+                block("Pushes to main are not allowed — use a feature branch and open a PR.")
             elif verdict == "ask":
-                has_ask, ask_reason = True, "Force-push rewrites remote history — confirm before proceeding."
+                has_ask = True
         elif sub not in SAFE:
             all_safe = False  # unknown/dangerous git subcommand → defer
 
     if not saw_git:
         return
-    if has_deny:
-        block(deny_reason)
     if has_ask:
-        emit("ask", ask_reason)
+        emit("ask", "Force-push rewrites remote history — confirm before proceeding.")
     if all_safe:
         emit("allow", "Recognised safe git command.")
 
