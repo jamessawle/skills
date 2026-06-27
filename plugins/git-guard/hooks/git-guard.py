@@ -43,18 +43,29 @@ SAFE = {
     "rev-parse", "tag", "describe", "blame", "shortlog", "ls-files",
     "symbolic-ref",
 }
-# Read-only pager/filter tools that are harmless as pipe targets, so a git
-# command piped through them (`git log | grep x`, `git push … | tail`) can still
-# be vouched for. Deliberately excludes anything that writes or executes (tee,
-# xargs, sed, awk, …) — those still downgrade the call to a prompt.
+# Read-only pager/filter tools harmless as pipe targets. Excludes anything that
+# writes or executes (tee, xargs, sed, awk, …) — those still downgrade to prompt.
 SAFE_PIPE = {
     "cat", "head", "tail", "less", "more", "grep", "egrep", "fgrep", "wc",
     "sort", "uniq", "nl", "cut", "tr", "rev", "column",
 }
-OPERATORS = {"&&", "||", "|", "|&", ";", "&", "(", ")"}
-SHORT_NO_VERIFY = re.compile(r"-[A-Za-z]*n[A-Za-z]*")  # -n, -nm, -vn, … (commit)
-# Matches --force, --force-with-lease[=...], and combined short flags containing f (-fu, -uf, …).
-_FORCE_FLAG_RE = re.compile(r"^(?:--force|--force-with-lease(?:=.*)?|-[A-Za-z]*f[A-Za-z]*)$")
+OPERATORS     = {"&&", "||", "|", "|&", ";", "&", "(", ")"}
+SHORT_NO_VERIFY = re.compile(r"-[A-Za-z]*n[A-Za-z]*")  # -n, -nm, -vn, … (commit only)
+_FORCE_FLAG_RE  = re.compile(r"^(?:--force|--force-with-lease(?:=.*)?|-[A-Za-z]*f[A-Za-z]*)$")
+
+# Verdict strings returned by classify_segment().
+_GIT_SAFE   = "git-safe"   # vetted git command
+_GIT_ASK    = "git-ask"    # needs force-push confirmation
+_PIPE_SAFE  = "pipe-safe"  # read-only filter; harmless but doesn't vouch alone
+_UNSAFE     = "unsafe"     # unrecognised/dangerous; falls through to prompt
+_SKIP       = "skip"       # redirect fragment or empty; ignored
+_DENY_HOOKS = "deny:hooks" # hook bypass — hard-block
+_DENY_MAIN  = "deny:main"  # push to main — hard-block
+
+_DENY_MESSAGES = {
+    _DENY_HOOKS: "Bypassing git hooks (--no-verify) is not allowed.",
+    _DENY_MAIN:  "Pushes to main are not allowed — use a feature branch and open a PR.",
+}
 
 
 def emit(decision, reason):
@@ -67,8 +78,7 @@ def emit(decision, reason):
 
 
 def block(reason):
-    """Hard-block the call: exit 2 stops it before permission rules apply, so it
-    beats even a broad allow rule. The reason goes to stderr for Claude Code."""
+    """Hard-block via exit 2 — beats even a broad allow rule in settings.json."""
     print(reason, file=sys.stderr)
     sys.exit(2)
 
@@ -86,11 +96,12 @@ def current_branch():
 
 
 def segments(cmd):
-    """Quote-aware split into command segments (lists of tokens)."""
+    """Quote-aware split into command segments (lists of tokens).
+    Raises ValueError on unbalanced quotes."""
     lexer = shlex.shlex(cmd, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     out, cur = [], []
-    for tok in lexer:  # may raise ValueError on unbalanced quotes
+    for tok in lexer:
         if tok in OPERATORS:
             if cur:
                 out.append(cur)
@@ -103,31 +114,58 @@ def segments(cmd):
 
 
 def push_verdict(args):
-    """`args` are the tokens after `git push`. Returns deny|ask|safe."""
+    """Analyse `git push` args. Returns "deny" | "ask" | "safe"."""
     force = False
     positionals = []
     for tok in args:
         if _FORCE_FLAG_RE.match(tok):
             force = True
-        elif tok.startswith("-"):
-            continue
-        else:
+        elif not tok.startswith("-"):
             positionals.append(tok)
     refspecs = positionals[1:]  # first positional is the remote
     targets = []
     if not refspecs:
-        targets.append(current_branch())  # bare push → current branch
+        targets.append(current_branch())  # bare push → resolve current branch
     else:
         for spec in refspecs:
-            if spec.startswith("+"):  # +refspec forces that ref
+            if spec.startswith("+"):       # +refspec is a force push
                 force, spec = True, spec[1:]
             dest = spec.split(":")[-1] if ":" in spec else spec
             targets.append(current_branch() if dest == "HEAD" else dest)
     if any(t is None for t in targets):
-        return "ask"  # can't determine branch → safer to prompt
+        return "ask"  # can't resolve branch (detached HEAD or git error) → prompt
     if any(t == "main" for t in targets):
         return "deny"
     return "ask" if force else "safe"
+
+
+def classify_segment(tokens):
+    """Classify one command segment and return a verdict string.
+
+    Redirect fragments (e.g. lone ['1'] from splitting '2>&1' on '&') and empty
+    lists are skipped. Non-git segments are pipe-safe or unsafe. Git segments are
+    checked for hook-bypass and push policy in that order.
+    """
+    if not tokens or all(t.isdigit() or t in (">", "<", ">>", "<<") for t in tokens):
+        return _SKIP
+    if tokens[0] != "git":
+        return _PIPE_SAFE if tokens[0] in SAFE_PIPE else _UNSAFE
+
+    sub  = tokens[1] if len(tokens) > 1 else ""
+    args = tokens[2:]
+
+    if "--no-verify" in tokens[1:] or (
+        sub == "commit" and any(SHORT_NO_VERIFY.fullmatch(a) for a in args)
+    ):
+        return _DENY_HOOKS
+
+    if sub == "push":
+        verdict = push_verdict(args)
+        if verdict == "deny":
+            return _DENY_MAIN
+        return _GIT_ASK if verdict == "ask" else _GIT_SAFE
+
+    return _GIT_SAFE if sub in SAFE else _UNSAFE
 
 
 def main():
@@ -143,49 +181,22 @@ def main():
         return
 
     try:
-        segs = segments(cmd)
+        all_v = [classify_segment(t) for t in segments(cmd)]
     except ValueError:
-        return  # can't parse safely → defer to the normal prompt
+        return  # unbalanced quotes → can't parse safely → defer
+    verdicts = [v for v in all_v if v != _SKIP]
 
-    has_ask = False
-    all_safe = True
-    saw_git = False
-
-    for tokens in segs:
-        # Skip I/O-redirect fragments produced when 2>&1 is split on the '&'
-        # operator (e.g. 'cmd 2>&1 | tail' creates a lone ['1'] segment between
-        # the & and the |). These are not commands and must not clear all_safe.
-        if tokens and all(t.isdigit() or t in (">", "<", ">>", "<<") for t in tokens):
-            continue
-        if not tokens or tokens[0] != "git":
-            if not tokens or tokens[0] not in SAFE_PIPE:
-                all_safe = False  # non-git segment: can't vouch for the whole call
-            continue  # harmless pager/filter: doesn't block, but can't vouch alone
-        saw_git = True
-        sub = tokens[1] if len(tokens) > 1 else ""
-        args = tokens[2:]
-
-        # Bypassing git hooks is never allowed, whatever the subcommand.
-        # Check tokens[1:] (not just args) so 'git --no-verify push' is also caught.
-        if "--no-verify" in tokens[1:] or (
-            sub == "commit" and any(SHORT_NO_VERIFY.fullmatch(a) for a in args)
-        ):
-            block("Bypassing git hooks (--no-verify) is not allowed.")
-
-        if sub == "push":
-            verdict = push_verdict(args)
-            if verdict == "deny":
-                block("Pushes to main are not allowed — use a feature branch and open a PR.")
-            elif verdict == "ask":
-                has_ask = True
-        elif sub not in SAFE:
-            all_safe = False  # unknown/dangerous git subcommand → defer
-
-    if not saw_git:
+    # Defer when no git segment is present (pipe-only or non-git commands).
+    if all(v in {_PIPE_SAFE, _UNSAFE} for v in verdicts):
         return
-    if has_ask:
+
+    for v in verdicts:
+        if v in _DENY_MESSAGES:
+            block(_DENY_MESSAGES[v])  # exits immediately
+
+    if any(v == _GIT_ASK for v in verdicts):
         emit("ask", "Force-push rewrites remote history — confirm before proceeding.")
-    if all_safe:
+    if all(v in {_GIT_SAFE, _PIPE_SAFE} for v in verdicts):
         emit("allow", "Recognised safe git command.")
 
 
