@@ -1,0 +1,12 @@
+{
+  "name": "git-guard",
+  "version": "1.0.0",
+  "description": "PreToolUse hook that enforces git policy for coding agents — blocks pushes to main, denies hook bypass (--no-verify), and asks before force-pushes.",
+  "author": {
+    "name": "James Sawle"
+  },
+  "homepage": "https://github.com/jamessawle/skills",
+  "repository": "https://github.com/jamessawle/skills",
+  "license": "MIT",
+  "keywords": ["git", "hooks", "guardrails", "governance", "safety"]
+}

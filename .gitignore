@@ -1,6 +1,16 @@
 .tmp/
-.claude/
 node_modules/
 dist/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
 .DS_Store
 docs/superpowers/
+
+# Claude Code: commit shared project config (settings.json, hooks/, etc.);
+# ignore only the machine-local and transient bits.
+.claude/settings.local.json
+.claude/*.local.json
+.claude/scheduled_tasks.lock
+.claude/.cache/

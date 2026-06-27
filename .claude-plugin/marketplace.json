@@ -24,6 +24,12 @@
       "source": "./plugins/story-tools",
       "description": "Tools for working with user stories",
       "category": "developer-tools"
+    },
+    {
+      "name": "git-guard",
+      "source": "./plugins/git-guard",
+      "description": "PreToolUse hook enforcing git policy for coding agents — blocks pushes to main, denies hook bypass, asks before force-pushes",
+      "category": "developer-tools"
     }
   ]
 }

@@ -1,0 +1,22 @@
+[project]
+name = "skills"
+version = "0.1.0"
+description = "Reusable skills and hooks for AI coding agents, packaged as plugins."
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+# Discover test_<thing>.py wherever it lives (tests are colocated with the hook
+# or script they cover, e.g. plugins/git-guard/hooks/test_git_guard.py) rather
+# than enumerating source dirs, so a new test is found wherever it is added.
+# Skip only build/dependency dirs; everything else stays searchable.
+norecursedirs = [".git", ".venv", "node_modules", "__pycache__", "dist", ".tmp"]

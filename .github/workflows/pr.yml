@@ -1,0 +1,36 @@
+name: PR
+
+# Run the test suite on every PR so a change that breaks a hook or script
+# blocks merge. Make this a required status check in
+# Settings → Branches → Branch protection on `main`.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        # No moving `v8` major tag is published; pin to the latest release.
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: make test
