@@ -12,7 +12,7 @@ cd "${CLAUDE_PROJECT_DIR:-.}"
 
 # Install uv if the container doesn't already provide it. Pin the version so
 # fresh containers don't silently upgrade; bump this default when upgrading.
-UV_INSTALL_VERSION="${UV_INSTALL_VERSION:-0.5.0}"
+UV_INSTALL_VERSION="${UV_INSTALL_VERSION:-0.8.17}"
 if ! command -v uv >/dev/null 2>&1; then
   curl -LsSf https://astral.sh/uv/install.sh | UV_VERSION="$UV_INSTALL_VERSION" sh
   export PATH="$HOME/.local/bin:$PATH"

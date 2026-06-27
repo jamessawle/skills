@@ -44,5 +44,5 @@ git-guard/
 ## Tests
 
 ```bash
-python3 plugins/git-guard/hooks/test_git_guard.py
+make test
 ```
