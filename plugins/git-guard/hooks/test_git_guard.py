@@ -106,6 +106,8 @@ class GitGuard(unittest.TestCase):
             "git push --force-with-lease",
             "git push -f origin foo",
             "git push origin +claude/foo",               # +refspec is a force push
+            "git push -fu origin claude/foo",            # combined short flag containing f
+            "git push -uf origin foo",                   # combined short flag, different order
         ])
 
     # DENY — any push whose destination is main.
@@ -144,6 +146,8 @@ class GitGuard(unittest.TestCase):
             "git commit -n -m x",
             'git commit -nm "x"',
             "git push --no-verify origin claude/foo",
+            "git --no-verify push origin claude/foo",    # --no-verify as a global git option
+            "git --no-verify commit -m x",              # same, for commit
         ])
 
     # DEFER — unrecognised/dangerous git, or a non-git segment.

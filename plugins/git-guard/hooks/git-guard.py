@@ -53,6 +53,8 @@ SAFE_PIPE = {
 }
 OPERATORS = {"&&", "||", "|", "|&", ";", "&", "(", ")"}
 SHORT_NO_VERIFY = re.compile(r"-[A-Za-z]*n[A-Za-z]*")  # -n, -nm, -vn, … (commit)
+# Matches --force, --force-with-lease[=...], and combined short flags containing f (-fu, -uf, …).
+_FORCE_FLAG_RE = re.compile(r"^(?:--force|--force-with-lease(?:=.*)?|-[A-Za-z]*f[A-Za-z]*)$")
 
 
 def emit(decision, reason):
@@ -104,7 +106,7 @@ def push_verdict(args):
     force = False
     positionals = []
     for tok in args:
-        if tok in ("--force", "-f") or tok.startswith("--force-with-lease"):
+        if _FORCE_FLAG_RE.match(tok):
             force = True
         elif tok.startswith("-"):
             continue
@@ -145,6 +147,11 @@ def main():
     saw_git = False
 
     for tokens in segs:
+        # Skip I/O-redirect fragments produced when 2>&1 is split on the '&'
+        # operator (e.g. 'cmd 2>&1 | tail' creates a lone ['1'] segment between
+        # the & and the |). These are not commands and must not clear all_safe.
+        if tokens and all(t.isdigit() or t in (">", "<", ">>", "<<") for t in tokens):
+            continue
         if not tokens or tokens[0] != "git":
             if not tokens or tokens[0] not in SAFE_PIPE:
                 all_safe = False  # non-git segment: can't vouch for the whole call
@@ -154,7 +161,8 @@ def main():
         args = tokens[2:]
 
         # Bypassing git hooks is never allowed, whatever the subcommand.
-        if "--no-verify" in args or (
+        # Check tokens[1:] (not just args) so 'git --no-verify push' is also caught.
+        if "--no-verify" in tokens[1:] or (
             sub == "commit" and any(SHORT_NO_VERIFY.fullmatch(a) for a in args)
         ):
             has_deny, deny_reason = True, "Bypassing git hooks (--no-verify) is not allowed."
