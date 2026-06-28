@@ -20,7 +20,7 @@ Some plugins ship hooks rather than skills. Hooks use Claude Code's `PreToolUse`
 
 | Plugin | Description | Prerequisites |
 |--------|-------------|---------------|
-| [`git-guard`](plugins/git-guard) | `PreToolUse` hook enforcing git policy for coding agents — denies pushes to `main`, denies git-hook bypass (`--no-verify`), asks before force-pushes, and auto-approves recognised safe git commands. | Python 3 |
+| [`git-guard`](plugins/git-guard) | `PreToolUse` hooks enforcing git and GitHub CLI (`gh`) policy for coding agents — denies pushes to `main`, denies git-hook bypass (`--no-verify`), asks before force-pushes, auto-approves recognised safe git commands, and (for `gh`) auto-approves read-only commands plus `gh pr create` while asking for other `gh` writes. | Python 3 |
 
 ## Installation
 
