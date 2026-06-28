@@ -28,7 +28,7 @@
     {
       "name": "git-guard",
       "source": "./plugins/git-guard",
-      "description": "PreToolUse hook enforcing git policy for coding agents — blocks pushes to main, denies hook bypass, asks before force-pushes",
+      "description": "PreToolUse hooks enforcing git and GitHub CLI (gh) policy for coding agents — blocks pushes to main, denies hook bypass, asks before force-pushes, auto-approves read-only gh commands and gh pr create",
       "category": "developer-tools"
     }
   ]
