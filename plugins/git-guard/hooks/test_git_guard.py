@@ -107,6 +107,10 @@ def test_allow(command, repo_key, repos):
     ("git push --no-verify origin claude/foo",              "feature"),
     ("git --no-verify push origin claude/foo",              "feature"),  # global git option
     ("git --no-verify commit -m x",                         "feature"),
+    # Abbreviated long option — git accepts any unambiguous prefix.
+    ("git commit --no-veri -m x",                           "feature"),  # shortest on commit
+    ("git commit --no-verif -m x",                          "feature"),
+    ("git push --no-verif origin feature",                  "feature"),
 ])
 def test_deny(command, repo_key, repos):
     assert decide(command, repos[repo_key]) == "deny"
@@ -120,6 +124,10 @@ def test_deny(command, repo_key, repos):
     ("git push origin +claude/foo",                         "feature"),  # +refspec = force
     ("git push -fu origin claude/foo",                      "feature"),  # combined flag with f
     ("git push -uf origin foo",                             "feature"),
+    # Abbreviated force flags — git accepts any unambiguous prefix.
+    ("git push --force-with-leas origin feature",           "feature"),
+    ("git push --force-w origin feature",                   "feature"),  # shortest unambiguous
+    ("git push --force-with-leas=origin/foo origin feature", "feature"),
     ("git push --force origin claude/foo | cat",            "feature"),  # ask beats pipe-safe
     # Detached HEAD: can't resolve current branch → safer to prompt.
     ("git push",                                            "detached"),

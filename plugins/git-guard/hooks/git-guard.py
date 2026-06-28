@@ -51,7 +51,37 @@ SAFE_PIPE = {
 }
 OPERATORS     = {"&&", "||", "|", "|&", ";", "&", "(", ")"}
 SHORT_NO_VERIFY = re.compile(r"-[A-Za-z]*n[A-Za-z]*")  # -n, -nm, -vn, … (commit only)
-_FORCE_FLAG_RE  = re.compile(r"^(?:--force|--force-with-lease(?:=.*)?|-[A-Za-z]*f[A-Za-z]*)$")
+SHORT_FORCE     = re.compile(r"-[A-Za-z]*f[A-Za-z]*")  # -f, -fu, -uf, … (combined short)
+
+# git's parse-options API accepts any *unambiguous prefix* of a long option, so
+# `--no-veri` runs as `--no-verify` and `--force-with-leas` as `--force-with-lease`.
+# Matching only the fully-spelled flag lets an abbreviation slip the guard — and
+# since hook-bypass is a hard deny, a miss auto-allows the bypass. We therefore
+# treat any prefix of the full flag at least min-length chars long as the flag.
+# Shorter prefixes are ambiguous and rejected by git itself (`--no-ver` collides
+# with `--no-verbose`, `--forc` with `--force`/`--force-with-lease`), so erring
+# toward a match here only ever denies commands git would reject anyway.
+_NO_VERIFY      = "--no-verify"
+_NO_VERIFY_MIN  = len("--no-veri")        # shorter is ambiguous with --no-verbose
+_FORCE_WITH_LEASE = "--force-with-lease"  # covers bare --force (its prefix) too
+_FORCE_MIN      = len("--force")          # shorter is ambiguous
+
+
+def _is_long_abbrev(token, full, min_len):
+    """True if token is a git-accepted (or git-rejected-ambiguous) prefix of a
+    long flag — i.e. a prefix of `full` no shorter than `min_len`."""
+    return len(token) >= min_len and full.startswith(token)
+
+
+def _is_no_verify(token):
+    return _is_long_abbrev(token, _NO_VERIFY, _NO_VERIFY_MIN)
+
+
+def _is_force(token):
+    if SHORT_FORCE.fullmatch(token):  # combined short flag: -f, -fu, …
+        return True
+    head = token.split("=", 1)[0]     # --force-with-lease=<value>
+    return _is_long_abbrev(head, _FORCE_WITH_LEASE, _FORCE_MIN)
 
 # Verdict strings returned by classify_segment().
 _GIT_SAFE   = "git-safe"   # vetted git command
@@ -118,7 +148,7 @@ def push_verdict(args):
     force = False
     positionals = []
     for tok in args:
-        if _FORCE_FLAG_RE.match(tok):
+        if _is_force(tok):
             force = True
         elif not tok.startswith("-"):
             positionals.append(tok)
@@ -154,7 +184,7 @@ def classify_segment(tokens):
     sub  = tokens[1] if len(tokens) > 1 else ""
     args = tokens[2:]
 
-    if "--no-verify" in tokens[1:] or (
+    if any(_is_no_verify(t) for t in tokens[1:]) or (
         sub == "commit" and any(SHORT_NO_VERIFY.fullmatch(a) for a in args)
     ):
         return _DENY_HOOKS
