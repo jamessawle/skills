@@ -94,9 +94,21 @@ def command_words(tokens):
     return (words[0] if words else "", words[1] if len(words) > 1 else "")
 
 
+def _is_field_flag(tok):
+    """True if a token is a `gh api` body-field flag in any of its forms:
+    `-f`/`-F`/`--field`/`--raw-field`/`--input`, the `--field=value` and `-f=value`
+    long-ish forms, and the concatenated shorthand `-fkey=val` / `-Fkey=val`
+    (pflag attaches a shorthand's value with no space). No other `gh api`
+    shorthand uses f/F, so the `-f`/`-F` prefix never catches an unrelated flag."""
+    if tok in _API_FIELD_FLAGS or tok.split("=", 1)[0] in _API_FIELD_FLAGS:
+        return True
+    return tok[:2] in ("-f", "-F") and not tok.startswith("--")
+
+
 def api_is_read(args):
     """True if a `gh api` call only reads — method GET/HEAD (explicit, or the
-    default when no body fields are supplied)."""
+    default when no body fields are supplied). An explicit method always wins
+    over the field-presence heuristic: `--method GET -f x=y` stays a read."""
     method, has_field = None, False
     i = 0
     while i < len(args):
@@ -109,7 +121,7 @@ def api_is_read(args):
             method = tok.split("=", 1)[1].upper()
         elif tok.startswith("-X") and len(tok) > 2:   # combined -XPOST
             method = tok[2:].upper()
-        elif tok in _API_FIELD_FLAGS or tok.split("=", 1)[0] in _API_FIELD_FLAGS:
+        elif _is_field_flag(tok):
             has_field = True
         i += 1
     if method is None:

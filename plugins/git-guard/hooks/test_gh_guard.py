@@ -93,6 +93,10 @@ def test_allow(command):
     "gh api repos/o/r/issues -f title=x",          # fields → POST
     "gh api --method DELETE repos/o/r/issues/1",
     "gh api -XPATCH repos/o/r/pulls/1 -f state=closed",
+    # Concatenated shorthand fields (pflag attaches the value) still imply POST.
+    "gh api repos/o/r/issues -ftitle=x",
+    "gh api repos/o/r/issues -Fbody=@file.json",
+    "gh api repos/o/r/issues --field=title=x",
     # ask wins over a read-only pipe target.
     "gh pr merge 1 | cat",
     # An allowed gh command combined with a gh write still asks.
