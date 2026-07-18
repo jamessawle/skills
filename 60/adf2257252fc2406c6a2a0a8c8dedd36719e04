@@ -1,0 +1,31 @@
+plugins/git-guard/hooks/contract/test_git_guard.py
+  s_c64552d8f0f91d::t_3a3da3e8bfe9d3 1-158
+plugins/git-guard/hooks/contract/README.md
+  s_6a012ca4423400::t_ec77e572cd11ba 1-43
+plugins/git-guard/hooks/contract/git_guard.py
+  s_6a012ca4423400::t_d5e15ccb244bf6 1-252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "60adf2257252fc2406c6a2a0a8c8dedd36719e04",
+  "prompts": {},
+  "sessions": {
+    "s_6a012ca4423400": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_6a012ca4423400",
+        "model": "unknown"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    },
+    "s_c64552d8f0f91d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f7474-5d44-7dc1-9b73-6e1f8e10eb97",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
