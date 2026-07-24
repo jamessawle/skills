@@ -1,0 +1,19 @@
+plugins/git-guard/.claude-plugin/plugin.json
+  s_c8bd7781e50b0c::t_2f12ec78b0c4eb 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "a7079c1711643b54d5eb0aa1cc571e73693d1a2b",
+  "prompts": {},
+  "sessions": {
+    "s_c8bd7781e50b0c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8e42375d-412f-4fde-8ceb-c3a031f4b2b7",
+        "model": "unknown"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
