@@ -129,5 +129,28 @@ def test_defer_on_unparseable(command: str) -> None:
     assert decide(command).is_defer
 
 
+@pytest.mark.parametrize("command", [
+    "ls -la",
+    "npm test",
+    "echo high",     # "gh" as a substring, not a word — must not false-positive
+    "echo though",
+])
+def test_mentions_gh_prefilter_skips_non_gh_commands(command: str) -> None:
+    from gh_guard import _MENTIONS_GH
+    assert not _MENTIONS_GH.search(command)
+
+
+@pytest.mark.parametrize("command", [
+    # Regression for the bug this pre-filter must not reintroduce: gh buried
+    # in a compound command must still classify correctly (previously masked
+    # when hooks.json gated invocation on a harness-level `if: "Bash(gh *)"`
+    # filter, which — per anthropics/claude-code#77037 — silently never fired
+    # for compound commands, so the guard's own logic never even ran).
+    'echo x >> f && gh pr merge 123',
+])
+def test_prefilter_does_not_mask_buried_gh_commands(command: str) -> None:
+    assert decide(command).is_ask
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

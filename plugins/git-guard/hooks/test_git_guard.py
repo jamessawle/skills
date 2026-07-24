@@ -176,3 +176,28 @@ def test_empty_command_defers() -> None:
 ])
 def test_defer_on_unparseable(command: str) -> None:
     assert decide(command, ".").is_defer
+
+
+@pytest.mark.parametrize("command", [
+    "ls -la",
+    "npm test",
+    "echo digit",       # "git" as a substring, not a word — must not false-positive
+    "echo github",
+])
+def test_mentions_git_prefilter_skips_non_git_commands(command: str) -> None:
+    from git_guard import _MENTIONS_GIT
+    assert not _MENTIONS_GIT.search(command)
+
+
+@pytest.mark.parametrize("command,repo_key", [
+    # Regression for the bug this pre-filter must not reintroduce: git buried
+    # in a compound command must still classify correctly (previously masked
+    # when hooks.json gated invocation on a harness-level `if: "Bash(git *)"`
+    # filter, which — per anthropics/claude-code#77037 — silently never fired
+    # for compound commands, so the guard's own logic never even ran).
+    ('echo x >> f && git add f && git commit -m "y"',    "main"),
+])
+def test_prefilter_does_not_mask_buried_git_commands(
+    command: str, repo_key: str, repos: dict[str, str]
+) -> None:
+    assert decide(command, repos[repo_key]).is_deny

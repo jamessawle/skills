@@ -60,6 +60,14 @@ SAFE = {
 SHORT_NO_VERIFY = re.compile(r"-[A-Za-z]*n[A-Za-z]*")  # -n, -nm, -vn, … (commit only)
 SHORT_FORCE = re.compile(r"-[A-Za-z]*f[A-Za-z]*")  # -f, -fu, -uf, … (combined short)
 
+# Cheap pre-filter: no segment can classify as a git command unless the literal
+# word "git" appears somewhere in the raw string, so this lets non-git calls
+# (the overwhelming majority of Bash calls) skip tokenising and the `git
+# rev-parse` subprocess entirely. Word-boundary, so "github"/"digit" don't
+# trigger the slower path; a false positive (e.g. "git" in a commit message)
+# just falls through to the real, correct segment-by-segment classification.
+_MENTIONS_GIT = re.compile(r"\bgit\b")
+
 # git's parse-options API accepts any *unambiguous prefix* of a long option, so
 # `--no-veri` runs as `--no-verify` and `--force-with-leas` as `--force-with-lease`.
 # Matching only the fully-spelled flag lets an abbreviation slip the guard — and
@@ -193,6 +201,8 @@ def git_guard(ctx: ToolBeforeContext) -> ToolBeforeVerdict:
         return defer()
     command = ctx.tool.command
     if not command:
+        return defer()
+    if not _MENTIONS_GIT.search(command):
         return defer()
 
     try:
