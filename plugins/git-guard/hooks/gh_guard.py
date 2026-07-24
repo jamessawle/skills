@@ -34,10 +34,19 @@ every decision is an advisory Verdict.
 
 from __future__ import annotations
 
+import re
+
 from hook_bridge import ToolBeforeContext, ToolBeforeVerdict, allow, ask, defer, hook
 
 from _shell import SAFE_PIPE as _BASE_SAFE_PIPE
 from _shell import is_redirect_fragment, segments
+
+# Cheap pre-filter: no segment can classify as a gh command unless the literal
+# word "gh" appears somewhere in the raw string, so this lets non-gh calls (the
+# overwhelming majority of Bash calls) skip tokenising entirely. Word-boundary,
+# so "high"/"though" don't trigger the slower path; a false positive (e.g. a
+# "gh-" prefixed filename) just falls through to the real classification.
+_MENTIONS_GH = re.compile(r"\bgh\b")
 
 # gh subcommands (the verb within a command group) that only read state — safe
 # to auto-approve wherever they appear: `gh pr view`, `gh run list`,
@@ -140,6 +149,8 @@ def gh_guard(ctx: ToolBeforeContext) -> ToolBeforeVerdict:
         return defer()
     command = ctx.tool.command
     if not command:
+        return defer()
+    if not _MENTIONS_GH.search(command):
         return defer()
 
     try:

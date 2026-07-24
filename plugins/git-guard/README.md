@@ -84,12 +84,17 @@ runs them with `uv run` (each file declares its own `hook-bridge-sdk`
 dependency inline via PEP 723, so there's no separate install step for the
 Hooks themselves). Both must be on `PATH`:
 
-On claude-code, each hook entry in `hooks.json` also carries an `if` field
-(`Bash(git *)` / `Bash(gh *)`) so the runtime skips the process spawn
-entirely on unrelated Bash calls (`ls`, `npm test`, …) instead of spawning
-`hook-bridge-runner` and letting the script early-return. The manual codex
-wiring below has no equivalent per-hook filter, so both hooks still run on
-every Bash call there and rely on their own early-return.
+Both hooks run unconditionally on every Bash call — `hooks.json` deliberately
+has no per-hook `if` filter (e.g. `if: "Bash(git *)"`). That looks like a free
+win (skip the `hook-bridge-runner` spawn on unrelated calls like `ls`/`npm
+test`), but per [anthropics/claude-code#77037](https://github.com/anthropics/claude-code/issues/77037)
+the `if` matcher can silently never fire for compound commands (`cmd1 && git
+commit`) even though the docs say it should — which would mask the guard
+entirely for exactly the commands it most needs to catch. `test_hooks_json.py`
+guards against reintroducing it. Each script instead does its own cheap
+pre-filter (`_MENTIONS_GIT` / `_MENTIONS_GH`, a `\bgit\b`/`\bgh\b` check on the
+raw command) before tokenising, which gets most of the same performance win
+without depending on that harness behaviour.
 
 ```bash
 brew install jamessawle/tap/hook-bridge-runner   # also pulls in uv
