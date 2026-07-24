@@ -1,0 +1,19 @@
+plugins/git-guard/hooks/git_guard.py
+  s_c8bd7781e50b0c::t_4cb298a96ba71e 234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "1dac6c90e0dcf27e1d083ab29abf3c7b6c996c13",
+  "prompts": {},
+  "sessions": {
+    "s_c8bd7781e50b0c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8e42375d-412f-4fde-8ceb-c3a031f4b2b7",
+        "model": "unknown"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
