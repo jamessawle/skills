@@ -1,0 +1,25 @@
+plugins/git-guard/hooks/_shell.py
+  s_bb9d05f0eb8221::t_3be5528a6060fb 42-50,52-55
+plugins/git-guard/hooks/git_guard.py
+  s_bb9d05f0eb8221::t_308ac0feb7c51d 149-152
+plugins/git-guard/hooks/test__shell.py
+  s_bb9d05f0eb8221::t_18c9fb074fa097 30-31,50-54,63
+plugins/git-guard/hooks/test_git_guard.py
+  s_bb9d05f0eb8221::t_5ccde372bfb965 87-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "099da1dbe23e917847c0b733e0d84aa002d90622",
+  "prompts": {},
+  "sessions": {
+    "s_bb9d05f0eb8221": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "92fd0b32-5e6f-48d3-8bc3-d4ba18cd2cb1",
+        "model": "unknown"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
