@@ -22,6 +22,9 @@ splits it on shell operators, then decides:
 - **DENY** a push whose destination branch is `main` — whether via an explicit
   refspec (`origin main`, `HEAD:main`, `feature:main`) or a bare push / `git push
   <remote>` while the current branch is `main`.
+- **DENY** a `git commit` while the current branch is `main` — catches the
+  problem before an agent strands work it can never push, rather than only at
+  the eventual `git push`.
 - **DENY** any attempt to bypass git hooks (`--no-verify`, `git commit -n`).
 - **ASK** before any force-push (it rewrites remote history).
 - **ALLOW** recognised read/safe git commands, including normal feature-branch
