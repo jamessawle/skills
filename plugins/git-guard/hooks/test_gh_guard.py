@@ -1,28 +1,23 @@
-#!/usr/bin/env python3
-"""Tests for gh-guard.py.
+"""Harness-free tests for gh_guard.
 
-Each parametrized case feeds a PreToolUse JSON payload to the guard and asserts
-the emitted permissionDecision ("allow"/"ask"), or "defer" when the guard emits
-nothing and the call falls through to the normal permission prompt.
+Each case drives the Hook through the real Contract types — no harness, no
+subprocess, no JSON — via `gh_guard.dispatch(tool_before(shell(cmd)))`,
+asserting on the returned Verdict (`.is_allow` / `.is_ask` / `.is_defer`).
 
-Unlike git-guard, the gh guard never resolves branches, so no repo fixtures are
-needed — the decision depends only on the command string.
+Unlike git-guard, the gh guard never resolves branches, so no repo fixtures
+are needed — the decision depends only on the command string.
 """
 
-import json
-import subprocess
-from pathlib import Path
+from __future__ import annotations
 
 import pytest
+from hook_bridge import ToolBeforeVerdict, shell, tool_before
 
-GUARD = str(Path(__file__).with_name("gh-guard.py"))
+from gh_guard import gh_guard
 
 
-def decide(command):
-    payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
-    proc = subprocess.run(["python3", GUARD], input=payload, capture_output=True, text=True)
-    out = proc.stdout.strip()
-    return "defer" if not out else json.loads(out)["hookSpecificOutput"]["permissionDecision"]
+def decide(command: str) -> ToolBeforeVerdict:
+    return gh_guard.dispatch(tool_before(shell(command)))
 
 
 @pytest.mark.parametrize("command", [
@@ -65,8 +60,8 @@ def decide(command):
     # Flags before positionals still resolve the command group/verb.
     "gh pr view 1 -R owner/repo",
 ])
-def test_allow(command):
-    assert decide(command) == "allow"
+def test_allow(command: str) -> None:
+    assert decide(command).is_allow
 
 
 @pytest.mark.parametrize("command", [
@@ -102,8 +97,10 @@ def test_allow(command):
     # An allowed gh command combined with a gh write still asks.
     "gh pr create --fill && gh pr merge 1",
 ])
-def test_ask(command):
-    assert decide(command) == "ask"
+def test_ask(command: str) -> None:
+    verdict = decide(command)
+    assert verdict.is_ask
+    assert verdict.reason  # ask carries a mandatory reason
 
 
 @pytest.mark.parametrize("command", [
@@ -116,19 +113,20 @@ def test_ask(command):
     # normal prompt rather than auto-approving or asking on gh's behalf.
     "gh pr view 1 && rm -rf foo",
 ])
-def test_defer(command):
-    assert decide(command) == "defer"
+def test_defer(command: str) -> None:
+    assert decide(command).is_defer
 
 
-@pytest.mark.parametrize("raw", [
-    "not valid json",
-    json.dumps({"tool_input": {"command": "gh pr view 'open"}}),  # unbalanced quote
+def test_empty_command_defers() -> None:
+    # An empty command carries no gh segment to vouch for → no opinion.
+    assert decide("").is_defer
+
+
+@pytest.mark.parametrize("command", [
+    "gh pr view 'open",  # unbalanced quote → can't parse safely → defer
 ])
-def test_defer_malformed_input(raw):
-    """Malformed JSON and unbalanced quotes both defer — no output, exit 0."""
-    proc = subprocess.run(["python3", GUARD], input=raw, capture_output=True, text=True)
-    assert proc.returncode == 0
-    assert proc.stdout.strip() == ""
+def test_defer_on_unparseable(command: str) -> None:
+    assert decide(command).is_defer
 
 
 if __name__ == "__main__":

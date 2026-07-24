@@ -10,7 +10,7 @@
           },
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/gh-guard.py"
+            "command": "hook-bridge-runner --harness claude-code ${CLAUDE_PLUGIN_ROOT}/hooks/gh_guard.py"
           }
         ]
       }

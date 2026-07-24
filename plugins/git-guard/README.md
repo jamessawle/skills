@@ -13,6 +13,9 @@ through `hook-bridge-runner`, so the same file enforces policy on **both
 claude-code and codex** — see [Prerequisites](#prerequisites) and
 [Wiring into codex](#wiring-into-codex).
 
+`gh_guard.py` (below) is ported onto the same Contract, so both hooks share
+identical claude-code/codex parity and wiring.
+
 For every shell tool call, the hook tokenises the command (quote-aware) and
 splits it on shell operators, then decides:
 
@@ -43,11 +46,11 @@ precedence on the harness version you're running.
 not yet gate the call on it (confirmed against codex-cli), so a force-push
 only actually prompts for confirmation on claude-code today.
 
-## GitHub CLI policy (`gh-guard.py`)
+## GitHub CLI policy (`gh_guard.py`)
 
-> **Claude Code only**, for now — unlike `git_guard.py`, this hook still speaks
-> claude-code's native `PreToolUse` JSON/exit-code protocol directly and has
-> no codex equivalent yet.
+Like `git_guard.py`, this hook is authored against the hook-bridge Contract
+and invoked through `hook-bridge-runner`, so it also enforces policy on
+**both claude-code and codex**.
 
 A companion hook governs `gh` with an allow-or-ask policy (it never hard-blocks):
 
@@ -71,22 +74,21 @@ the call to auto-approve, and an unrecognised `gh` segment downgrades it to
 
 ## Prerequisites
 
-`git_guard.py` is a [hook-bridge](https://github.com/jamessawle/hook-bridge)
-Hook, not a plain script — `hooks.json` invokes it via `hook-bridge-runner`,
-which in turn runs it with `uv run` (the file declares its own
-`hook-bridge-sdk` dependency inline via PEP 723, so there's no separate
-install step for the Hook itself). Both must be on `PATH`:
+Both `git_guard.py` and `gh_guard.py` are
+[hook-bridge](https://github.com/jamessawle/hook-bridge) Hooks, not plain
+scripts — `hooks.json` invokes each via `hook-bridge-runner`, which in turn
+runs them with `uv run` (each file declares its own `hook-bridge-sdk`
+dependency inline via PEP 723, so there's no separate install step for the
+Hooks themselves). Both must be on `PATH`:
 
 ```bash
 brew install jamessawle/tap/hook-bridge-runner   # also pulls in uv
 ```
 
-`gh-guard.py` has no such dependency — it's invoked with `python3` directly.
-
 ## Wiring into codex
 
-Installing this plugin only wires `git_guard.py` into claude-code (via
-`hooks.json`); codex has no plugin-level hook installation, so wiring it in
+Installing this plugin only wires the hooks into claude-code (via
+`hooks.json`); codex has no plugin-level hook installation, so wiring them in
 there is a manual step in `.codex/config.toml` (or `~/.codex/config.toml`):
 
 ```toml
@@ -96,6 +98,10 @@ matcher = "^Bash$"
 [[hooks.PreToolUse.hooks]]
 type = "command"
 command = "hook-bridge-runner --harness codex /path/to/plugins/git-guard/hooks/git_guard.py"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "hook-bridge-runner --harness codex /path/to/plugins/git-guard/hooks/gh_guard.py"
 ```
 
 Codex also gates hook execution behind trust review (`/hooks`) and the
@@ -107,12 +113,12 @@ Codex also gates hook execution behind trust review (`/hooks`) and the
 git-guard/
   .claude-plugin/plugin.json   # plugin manifest
   hooks/
-    hooks.json                 # wires PreToolUse(Bash) → git_guard.py (via hook-bridge-runner) + gh-guard.py
+    hooks.json                 # wires PreToolUse(Bash) → git_guard.py + gh_guard.py (via hook-bridge-runner)
     git_guard.py               # the git guard, a hook-bridge Hook (runs on claude-code + codex)
-    gh-guard.py                # the GitHub CLI guard (claude-code only)
+    gh_guard.py                # the GitHub CLI guard, a hook-bridge Hook (runs on claude-code + codex)
     _shell.py                  # tokeniser + pipe-target allowlist shared by both guards
     test_git_guard.py          # git guard test suite (harness-free, via hook-bridge-sdk)
-    test_gh_guard.py           # gh guard test suite
+    test_gh_guard.py           # gh guard test suite (harness-free, via hook-bridge-sdk)
 ```
 
 ## Tests

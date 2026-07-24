@@ -1,5 +1,12 @@
-#!/usr/bin/env python3
-"""PreToolUse guard — GitHub CLI (`gh`) permission policy, companion to git-guard:
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["hook-bridge-sdk"]
+# ///
+"""PreToolUse guard — GitHub CLI (`gh`) permission policy, companion to git-guard.
+
+Authored against the generic hook-bridge Contract so the same file runs
+unchanged on both claude-code and codex (see ../hooks.json, which invokes it
+through `hook-bridge-runner --harness <claude-code|codex>`).
 
   - ALLOW recognised read-only gh commands (view/list/diff/status/checks/watch/
           download across pr, issue, run, workflow, repo, release, …; every
@@ -21,12 +28,13 @@ non-pipe segment makes the guard defer to the normal prompt. Using a real
 tokeniser means a PR body that merely mentions `gh pr merge` is never mistaken
 for the command.
 
-This guard never hard-blocks (no exit-2 denials): the policy is allow-or-ask, so
-every decision is an advisory JSON permissionDecision.
+This guard never hard-blocks (no deny outcome): the policy is allow-or-ask, so
+every decision is an advisory Verdict.
 """
 
-import json
-import sys
+from __future__ import annotations
+
+from hook_bridge import ToolBeforeContext, ToolBeforeVerdict, allow, ask, defer, hook
 
 from _shell import SAFE_PIPE as _BASE_SAFE_PIPE
 from _shell import is_redirect_fragment, segments
@@ -47,34 +55,25 @@ SAFE_PIPE = _BASE_SAFE_PIPE | {"jq"}
 
 # `gh api` flags that turn a request into a mutation. Any --field/-f/-F (gh sends
 # those as a POST body unless --method says otherwise) or an explicit method.
-_API_FIELD_FLAGS  = {"-f", "-F", "--field", "--raw-field", "--input"}
+_API_FIELD_FLAGS = {"-f", "-F", "--field", "--raw-field", "--input"}
 _API_METHOD_FLAGS = {"-X", "--method"}
 
 # Verdict strings returned by classify_segment().
-_GH_ALLOW  = "gh-allow"   # vetted read-only gh command (or gh pr create)
-_GH_ASK    = "gh-ask"     # any other gh command — confirm first
+_GH_ALLOW = "gh-allow"   # vetted read-only gh command (or gh pr create)
+_GH_ASK = "gh-ask"       # any other gh command — confirm first
 _PIPE_SAFE = "pipe-safe"  # read-only filter; harmless but doesn't vouch alone
-_UNSAFE    = "unsafe"     # non-gh, non-pipe segment
-_SKIP      = "skip"       # redirect fragment or empty; ignored
+_UNSAFE = "unsafe"        # non-gh, non-pipe segment
+_SKIP = "skip"            # redirect fragment or empty; ignored
 
 
-def emit(decision, reason):
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": decision,
-        "permissionDecisionReason": reason,
-    }}))
-    sys.exit(0)
-
-
-def command_words(tokens):
+def command_words(tokens: list[str]) -> tuple[str, str]:
     """Return (group, subcommand) — the first two non-flag words after `gh`.
     Skipping flags means `gh pr view -R o/r` still resolves to ("pr", "view")."""
     words = [t for t in tokens[1:] if not t.startswith("-")]
     return (words[0] if words else "", words[1] if len(words) > 1 else "")
 
 
-def _is_field_flag(tok):
+def _is_field_flag(tok: str) -> bool:
     """True if a token is a `gh api` body-field flag in any of its forms:
     `-f`/`-F`/`--field`/`--raw-field`/`--input`, the `--field=value` and `-f=value`
     long-ish forms, and the concatenated shorthand `-fkey=val` / `-Fkey=val`
@@ -85,7 +84,7 @@ def _is_field_flag(tok):
     return tok[:2] in ("-f", "-F") and not tok.startswith("--")
 
 
-def api_is_read(args):
+def api_is_read(args: list[str]) -> bool:
     """True if a `gh api` call only reads — method GET/HEAD (explicit, or the
     default when no body fields are supplied). An explicit method always wins
     over the field-presence heuristic: `--method GET -f x=y` stays a read."""
@@ -99,7 +98,7 @@ def api_is_read(args):
             continue
         if tok.startswith("--method="):
             method = tok.split("=", 1)[1].upper()
-        elif tok.startswith("-X") and len(tok) > 2:   # combined -XPOST
+        elif tok.startswith("-X") and len(tok) > 2:  # combined -XPOST
             method = tok[2:].upper()
         elif _is_field_flag(tok):
             has_field = True
@@ -109,7 +108,7 @@ def api_is_read(args):
     return method in ("GET", "HEAD")
 
 
-def classify_segment(tokens):
+def classify_segment(tokens: list[str]) -> str:
     """Classify one command segment and return a verdict string."""
     if is_redirect_fragment(tokens):
         return _SKIP
@@ -118,7 +117,7 @@ def classify_segment(tokens):
 
     group, sub = command_words(tokens)
     if not group:
-        return _GH_ALLOW          # bare `gh`, `gh --help`, `gh --version`
+        return _GH_ALLOW  # bare `gh`, `gh --help`, `gh --version`
     if group == "api":
         idx = tokens.index("api")
         return _GH_ALLOW if api_is_read(tokens[idx + 1:]) else _GH_ASK
@@ -131,32 +130,38 @@ def classify_segment(tokens):
     return _GH_ASK
 
 
-def main():
-    raw = sys.stdin.read()
-    try:
-        cmd = json.loads(raw).get("tool_input", {}).get("command", "")
-    except Exception:
-        return
-    if not cmd:
-        return
+@hook
+def gh_guard(ctx: ToolBeforeContext) -> ToolBeforeVerdict:
+    """Apply the gh policy to a `tool.before` event, returning a Verdict.
+
+    The pure seam — harness-free tests call this via `gh_guard.dispatch`.
+    """
+    if ctx.tool.kind != "shell":
+        return defer()
+    command = ctx.tool.command
+    if not command:
+        return defer()
 
     try:
-        all_v = [classify_segment(t) for t in segments(cmd)]
+        classified = [classify_segment(t) for t in segments(command)]
     except ValueError:
-        return  # unbalanced quotes → can't parse safely → defer
-    verdicts = [v for v in all_v if v != _SKIP]
+        return defer()  # unbalanced quotes → can't parse safely → no opinion
+    verdicts = [v for v in classified if v != _SKIP]
 
     # Defer when no gh segment is present (pipe-only or non-gh commands), so
     # git-guard and the normal permission prompt own those calls.
-    if all(v in {_PIPE_SAFE, _UNSAFE} for v in verdicts):
-        return
+    if all(v in (_PIPE_SAFE, _UNSAFE) for v in verdicts):
+        return defer()
 
     if any(v == _GH_ASK for v in verdicts):
-        emit("ask", "This gh command isn't on the auto-approved allowlist "
+        return ask("This gh command isn't on the auto-approved allowlist "
                     "(read-only commands and gh pr create) — confirm before proceeding.")
-    if all(v in {_GH_ALLOW, _PIPE_SAFE} for v in verdicts):
-        emit("allow", "Recognised read-only gh command (or gh pr create).")
+
+    if all(v in (_GH_ALLOW, _PIPE_SAFE) for v in verdicts):
+        return allow()
+
+    return defer()
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":  # runnable as a subprocess AND importable in tests
+    gh_guard.run()
