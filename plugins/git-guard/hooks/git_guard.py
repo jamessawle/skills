@@ -146,9 +146,10 @@ def push_verdict(args: list[str], cwd: str) -> str:
 def classify_segment(tokens: list[str], cwd: str) -> str:
     """Classify one command segment and return a verdict string.
 
-    Redirect fragments (e.g. lone ['1'] from splitting '2>&1' on '&') and empty
-    lists are skipped. Non-git segments are pipe-safe or unsafe. Git segments are
-    checked for hook-bypass and push policy in that order.
+    Redirect fragments (e.g. ['2', '>&', '1'] when a standalone '2>&1' lands in
+    its own segment) and empty lists are skipped. Non-git segments are pipe-safe
+    or unsafe. Git segments are checked for hook-bypass and push policy in that
+    order.
     """
     if is_redirect_fragment(tokens):
         return _SKIP

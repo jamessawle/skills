@@ -84,6 +84,10 @@ def decide(command: str, cwd: str) -> ToolBeforeVerdict:
     # -n means --dry-run for fetch; the SHORT_NO_VERIFY guard is commit-only.
     ("git fetch -n",                                      "feature"),
     ("git fetch --dry-run",                               "feature"),
+    # A redirect isolated between real operators lands in its own segment
+    # (['2', '>&', '1']) — is_redirect_fragment recognises it as noise rather
+    # than downgrading the whole call to defer.
+    ("git status ; 2>&1 ; git push origin claude/foo",    "feature"),
 ])
 def test_allow(command: str, repo_key: str, repos: dict[str, str]) -> None:
     assert decide(command, repos[repo_key]).is_allow

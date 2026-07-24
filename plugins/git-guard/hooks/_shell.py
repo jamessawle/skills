@@ -39,7 +39,17 @@ def segments(cmd: str) -> list[list[str]]:
     return out
 
 
+# Redirect-operator punctuation tokens shlex(punctuation_chars=True) can
+# produce. It groups consecutive punctuation characters into one token, so a
+# compound redirect like "2>&1" lexes as "2", ">&", "1" — three tokens, not
+# one — and a lone ">" or "<" isn't the whole story once fd-duplication
+# (">&", "<&"), append (">>", "&>>"), noclobber ("<>", ">|") and here-string
+# ("<<<") forms are included. "-" covers fd-close syntax (e.g. "1>&-").
+_REDIRECT_OPS = {">", "<", ">>", "<<", ">&", "<&", "&>", "&>>", ">|", "<>", "<<<"}
+
+
 def is_redirect_fragment(tokens: list[str]) -> bool:
-    """True for a lone digit (e.g. '1' from splitting '2>&1' on '&') or an
-    empty segment — noise from splitting on shell operators, not a command."""
-    return not tokens or all(t.isdigit() or t in (">", "<", ">>", "<<") for t in tokens)
+    """True for a segment made entirely of redirect noise — digits, fd-close
+    markers, and redirect-operator tokens (e.g. ['2', '>&', '1'] from a
+    standalone "2>&1") — or an empty segment. Not a real command."""
+    return not tokens or all(t.isdigit() or t in _REDIRECT_OPS or t == "-" for t in tokens)

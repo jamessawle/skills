@@ -27,9 +27,8 @@ from _shell import is_redirect_fragment, segments
     # its own fragment. Only a real operator on both sides isolates one (below).
     ("git push -u origin foo 2>&1 | tail -20",
      [["git", "push", "-u", "origin", "foo", "2", ">&", "1"], ["tail", "-20"]]),
-    # A redirect flanked by real operators *does* land in its own segment —
-    # and it is NOT a pure digit/bracket fragment, so is_redirect_fragment
-    # doesn't recognise it either (see test_is_redirect_fragment_false below).
+    # A redirect flanked by real operators lands in its own segment —
+    # is_redirect_fragment recognises it as noise (see test_is_redirect_fragment_true).
     ("git status ; 2>&1 ; git push",
      [["git", "status"], ["2", ">&", "1"], ["git", "push"]]),
 ])
@@ -48,6 +47,11 @@ def test_segments_raises_on_unbalanced_quotes() -> None:
     [">"],
     ["<<"],
     ["1", "2"],
+    ["2", ">&", "1"],    # standalone "2>&1" — fd-duplication
+    ["1", ">&", "-"],    # standalone "1>&-" — fd-close
+    ["0", "<&", "2"],    # standalone "0<&2"
+    ["&>", "1"],         # standalone "&>1" (no leading fd)
+    ["<<<", "1"],        # standalone here-string redirect
 ])
 def test_is_redirect_fragment_true(tokens: list[str]) -> None:
     assert is_redirect_fragment(tokens)
@@ -56,12 +60,7 @@ def test_is_redirect_fragment_true(tokens: list[str]) -> None:
 @pytest.mark.parametrize("tokens", [
     ["git", "status"],
     ["cat"],
-    ["1", "git"],       # a real command mixed with a digit isn't a pure fragment
-    ["2", ">&", "1"],   # the ">&" token isn't one of the recognised redirect
-                        # symbols (">", "<", ">>", "<<") — a standalone "2>&1"
-                        # segment defers rather than being skipped as noise.
-                        # Overly cautious, not unsafe: a segment this classify_segment
-                        # doesn't recognise just downgrades the whole call to defer.
+    ["1", "git"],  # a real command mixed with a digit isn't a pure fragment
 ])
 def test_is_redirect_fragment_false(tokens: list[str]) -> None:
     assert not is_redirect_fragment(tokens)
