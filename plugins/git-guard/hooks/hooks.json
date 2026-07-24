@@ -6,10 +6,12 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(git *)",
             "command": "hook-bridge-runner --harness claude-code ${CLAUDE_PLUGIN_ROOT}/hooks/git_guard.py"
           },
           {
             "type": "command",
+            "if": "Bash(gh *)",
             "command": "hook-bridge-runner --harness claude-code ${CLAUDE_PLUGIN_ROOT}/hooks/gh_guard.py"
           }
         ]

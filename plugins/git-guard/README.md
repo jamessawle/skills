@@ -84,6 +84,13 @@ runs them with `uv run` (each file declares its own `hook-bridge-sdk`
 dependency inline via PEP 723, so there's no separate install step for the
 Hooks themselves). Both must be on `PATH`:
 
+On claude-code, each hook entry in `hooks.json` also carries an `if` field
+(`Bash(git *)` / `Bash(gh *)`) so the runtime skips the process spawn
+entirely on unrelated Bash calls (`ls`, `npm test`, …) instead of spawning
+`hook-bridge-runner` and letting the script early-return. The manual codex
+wiring below has no equivalent per-hook filter, so both hooks still run on
+every Bash call there and rely on their own early-return.
+
 ```bash
 brew install jamessawle/tap/hook-bridge-runner   # also pulls in uv
 ```
