@@ -8,3 +8,13 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: plugin-version-bump
+        name: Check plugin version bumped since main
+        # Same check CI runs on the PR; catching it here at push time (rather
+        # than waiting for CI) is what would have caught #26/#27 shipping
+        # without a version bump.
+        entry: bash -c 'git fetch --quiet origin main && python3 scripts/check_plugin_version_bump.py origin/main'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
