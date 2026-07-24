@@ -1,7 +1,7 @@
 {
   "name": "git-guard",
-  "version": "1.1.0",
-  "description": "PreToolUse hooks that enforce git and GitHub CLI (gh) policy for coding agents — block pushes to main, deny hook bypass (--no-verify), ask before force-pushes, and auto-approve safe git and read-only gh commands plus gh pr create. The git policy runs on both claude-code and codex via hook-bridge (requires hook-bridge-runner on PATH); the gh policy is claude-code only.",
+  "version": "1.2.0",
+  "description": "PreToolUse hooks that enforce git and GitHub CLI (gh) policy for coding agents — block pushes to main, deny hook bypass (--no-verify), ask before force-pushes, and auto-approve safe git and read-only gh commands plus gh pr create. Both the git and gh policies run on claude-code and codex via hook-bridge (requires hook-bridge-runner on PATH).",
   "author": {
     "name": "James Sawle"
   },
