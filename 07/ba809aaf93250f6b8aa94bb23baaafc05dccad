@@ -1,0 +1,27 @@
+plugins/git-guard/hooks/gh_guard.py
+  s_c8bd7781e50b0c::t_757fc63e59adab 37-38,44-50,153-154
+plugins/git-guard/hooks/git_guard.py
+  s_c8bd7781e50b0c::t_590eb31399d7a6 63-70,205-206
+plugins/git-guard/hooks/test_gh_guard.py
+  s_c8bd7781e50b0c::t_d3fedf0a0f71d4 132-154
+plugins/git-guard/hooks/test_git_guard.py
+  s_c8bd7781e50b0c::t_06ebddd1fc0db1 179-203
+plugins/git-guard/hooks/test_hooks_json.py
+  s_c8bd7781e50b0c::t_4e4f56510a2573 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "07ba809aaf93250f6b8aa94bb23baaafc05dccad",
+  "prompts": {},
+  "sessions": {
+    "s_c8bd7781e50b0c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8e42375d-412f-4fde-8ceb-c3a031f4b2b7",
+        "model": "unknown"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
