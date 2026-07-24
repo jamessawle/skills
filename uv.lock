@@ -39,6 +39,15 @@ wheels = [
 ]
 
 [[package]]
+name = "hook-bridge-sdk"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/e3/001611f9529f8398333b0c5dcd4f760494bc617bfe08b336780fbbb6e0ca/hook_bridge_sdk-0.1.1.tar.gz", hash = "sha256:062a2783d77b2f03186f6bb02c4172c6a9558e5e0af1f98a158fb8d7921a9d19", size = 8572, upload-time = "2026-07-23T21:44:10.672Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/e4/9db55f59c422c607697056c79a3c69e81eaebc5ee291e4b67bf689dac6df/hook_bridge_sdk-0.1.1-py3-none-any.whl", hash = "sha256:ae5d1dfc4efdb2c15a84d2c808b250ca7ff8bfda4361a156235f1ddecf2acfad", size = 8826, upload-time = "2026-07-23T21:44:09.634Z" },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.19"
 source = { registry = "https://pypi.org/simple" }
@@ -199,6 +208,7 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "hook-bridge-sdk" },
     { name = "pre-commit" },
     { name = "pytest" },
 ]
@@ -207,6 +217,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "hook-bridge-sdk", specifier = ">=0.1.1" },
     { name = "pre-commit", specifier = ">=4.6.0" },
     { name = "pytest", specifier = ">=8.0" },
 ]

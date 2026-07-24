@@ -10,6 +10,7 @@ package = false
 
 [dependency-groups]
 dev = [
+    "hook-bridge-sdk>=0.1.1",
     "pre-commit>=4.6.0",
     "pytest>=8.0",
 ]

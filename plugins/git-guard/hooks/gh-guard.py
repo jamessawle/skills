@@ -26,8 +26,10 @@ every decision is an advisory JSON permissionDecision.
 """
 
 import json
-import shlex
 import sys
+
+from _shell import SAFE_PIPE as _BASE_SAFE_PIPE
+from _shell import is_redirect_fragment, segments
 
 # gh subcommands (the verb within a command group) that only read state — safe
 # to auto-approve wherever they appear: `gh pr view`, `gh run list`,
@@ -39,13 +41,9 @@ READ_SUBCMDS = {
 READ_GROUPS = {"search", "status"}
 # The only write commands explicitly vouched for, as (group, subcommand) pairs.
 ALLOW_WRITES = {("pr", "create")}
-# Read-only pager/filter tools harmless as pipe targets. `jq` is included on top
-# of git-guard's set since `gh api … | jq` is the idiomatic way to read JSON.
-SAFE_PIPE = {
-    "cat", "head", "tail", "less", "more", "grep", "egrep", "fgrep", "wc",
-    "sort", "uniq", "nl", "cut", "tr", "rev", "column", "jq",
-}
-OPERATORS = {"&&", "||", "|", "|&", ";", "&", "(", ")"}
+# `jq` is included on top of git-guard's base pipe set since `gh api … | jq` is
+# the idiomatic way to read JSON.
+SAFE_PIPE = _BASE_SAFE_PIPE | {"jq"}
 
 # `gh api` flags that turn a request into a mutation. Any --field/-f/-F (gh sends
 # those as a POST body unless --method says otherwise) or an explicit method.
@@ -67,24 +65,6 @@ def emit(decision, reason):
         "permissionDecisionReason": reason,
     }}))
     sys.exit(0)
-
-
-def segments(cmd):
-    """Quote-aware split into command segments (lists of tokens).
-    Raises ValueError on unbalanced quotes."""
-    lexer = shlex.shlex(cmd, posix=True, punctuation_chars=True)
-    lexer.whitespace_split = True
-    out, cur = [], []
-    for tok in lexer:
-        if tok in OPERATORS:
-            if cur:
-                out.append(cur)
-                cur = []
-        else:
-            cur.append(tok)
-    if cur:
-        out.append(cur)
-    return out
 
 
 def command_words(tokens):
@@ -131,7 +111,7 @@ def api_is_read(args):
 
 def classify_segment(tokens):
     """Classify one command segment and return a verdict string."""
-    if not tokens or all(t.isdigit() or t in (">", "<", ">>", "<<") for t in tokens):
+    if is_redirect_fragment(tokens):
         return _SKIP
     if tokens[0] != "gh":
         return _PIPE_SAFE if tokens[0] in SAFE_PIPE else _UNSAFE
