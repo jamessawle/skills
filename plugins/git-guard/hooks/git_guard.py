@@ -14,6 +14,9 @@ and split on shell operators, then:
           (`origin main`, `HEAD:main`, `feature:main`), or a bare push /
           `git push <remote>` while the current branch is `main` (no `main`
           appears in the command then, so the branch is resolved with git).
+  - DENY  a `git commit` while the current branch is `main` — catches the
+          problem at commit time, before an agent strands work that can
+          never be pushed.
   - DENY  any attempt to bypass git hooks (`--no-verify`, `git commit -n`).
   - ASK   before any force-push (it rewrites remote history).
   - ALLOW recognised read/safe git commands, including normal feature-branch
@@ -96,10 +99,14 @@ _UNSAFE = "unsafe"  # unrecognised/dangerous; downgrades to defer
 _SKIP = "skip"  # redirect fragment or empty; ignored
 _DENY_HOOKS = "deny:hooks"  # hook bypass — hard-block
 _DENY_MAIN = "deny:main"  # push to main — hard-block
+_DENY_COMMIT_MAIN = "deny:commit-main"  # commit while on main — hard-block
 
 _DENY_MESSAGES = {
     _DENY_HOOKS: "Bypassing git hooks (--no-verify) is not allowed.",
     _DENY_MAIN: "Pushes to main are not allowed — use a feature branch and open a PR.",
+    _DENY_COMMIT_MAIN: (
+        "Committing directly to main is not allowed — create a feature branch first."
+    ),
 }
 
 
@@ -169,6 +176,9 @@ def classify_segment(tokens: list[str], cwd: str) -> str:
         if verdict == "deny":
             return _DENY_MAIN
         return _GIT_ASK if verdict == "ask" else _GIT_SAFE
+
+    if sub == "commit" and current_branch(cwd) == "main":
+        return _DENY_COMMIT_MAIN
 
     return _GIT_SAFE if sub in SAFE else _UNSAFE
 

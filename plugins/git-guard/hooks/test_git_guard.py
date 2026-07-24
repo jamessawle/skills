@@ -117,6 +117,11 @@ def test_allow(command: str, repo_key: str, repos: dict[str, str]) -> None:
     ("git commit --no-veri -m x",                        "feature"),  # shortest on commit
     ("git commit --no-verif -m x",                        "feature"),
     ("git push --no-verif origin feature",                "feature"),
+    # Committing directly to main strands work that can never be pushed —
+    # block at commit time rather than only at the eventual push.
+    ('git commit -m "feat: x"',                          "main"),
+    ("git commit --amend",                               "main"),
+    ('git commit -m x && git push origin claude/foo',    "main"),
 ])
 def test_deny(command: str, repo_key: str, repos: dict[str, str]) -> None:
     verdict = decide(command, repos[repo_key])
