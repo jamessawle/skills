@@ -16,11 +16,16 @@ Reusable skills for AI coding agents, packaged as native plugins for both Claude
 
 ## Hooks
 
-Some plugins ship hooks rather than skills. Hooks use Claude Code's `PreToolUse` protocol and are **Claude Code-only** — they have no Codex equivalent.
+Some plugins ship hooks rather than skills. Hooks use each agent's `PreToolUse`
+protocol. Most are **Claude Code-only**; `git-guard`'s git policy is the
+exception — it's authored against the generic
+[hook-bridge](https://github.com/jamessawle/hook-bridge) Contract and runs on
+**both Claude Code and Codex** (see its own README for Codex wiring, which is
+a manual step for now).
 
 | Plugin | Description | Prerequisites |
 |--------|-------------|---------------|
-| [`git-guard`](plugins/git-guard) | `PreToolUse` hooks enforcing git and GitHub CLI (`gh`) policy for coding agents — denies pushes to `main`, denies git-hook bypass (`--no-verify`), asks before force-pushes, auto-approves recognised safe git commands, and (for `gh`) auto-approves read-only commands plus `gh pr create` while asking for other `gh` writes. | Python 3 |
+| [`git-guard`](plugins/git-guard) | `PreToolUse` hooks enforcing git and GitHub CLI (`gh`) policy for coding agents — denies pushes to `main`, denies git-hook bypass (`--no-verify`), asks before force-pushes, auto-approves recognised safe git commands, and (for `gh`) auto-approves read-only commands plus `gh pr create` while asking for other `gh` writes. | [`hook-bridge-runner`](https://github.com/jamessawle/hook-bridge) + [`uv`](https://docs.astral.sh/uv/) for the git policy (both harnesses); Python 3 alone for the `gh` policy (Claude Code only) |
 
 ## Installation
 
