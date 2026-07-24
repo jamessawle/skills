@@ -1,0 +1,19 @@
+README.md
+  s_bb9d05f0eb8221::t_91474cf0e41e1e 19-24,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "e11f4195dca85a343e98322615bfe3d423fc1eed",
+  "prompts": {},
+  "sessions": {
+    "s_bb9d05f0eb8221": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "92fd0b32-5e6f-48d3-8bc3-d4ba18cd2cb1",
+        "model": "unknown"
+      },
+      "human_author": "James Sawle <jamessawle@hotmail.com>"
+    }
+  }
+}
